@@ -14,8 +14,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 /**
  * REST controller for visit management.
  */
@@ -32,7 +30,7 @@ public class VisitController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get visit details")
-    public ResponseEntity<VisitResponse> getVisit(@PathVariable UUID id) {
+    public ResponseEntity<VisitResponse> getVisit(@PathVariable Long id) {
         VisitResponse response = visitService.getVisitById(id);
         return ResponseEntity.ok(response);
     }
@@ -40,7 +38,7 @@ public class VisitController {
     @PutMapping("/{id}/start")
     @Operation(summary = "Provider starts visit (GPS location captured)")
     public ResponseEntity<VisitResponse> startVisit(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal) {
         VisitResponse response = visitService.startVisit(id, principal.userId());
         return ResponseEntity.ok(response);
@@ -49,7 +47,7 @@ public class VisitController {
     @PutMapping("/{id}/complete")
     @Operation(summary = "Submit visit form with vitals, notes, and signature")
     public ResponseEntity<VisitResponse> completeVisit(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Valid @RequestBody CompleteVisitRequest request) {
         VisitResponse response = visitService.completeVisit(id, request);
         return ResponseEntity.ok(response);
@@ -58,7 +56,7 @@ public class VisitController {
     @PostMapping("/{id}/escalate")
     @Operation(summary = "Trigger an escalation for a visit")
     public ResponseEntity<EscalationResponse> escalateVisit(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Valid @RequestBody EscalationRequest request) {
         EscalationResponse response = visitService.escalateVisit(id, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -66,7 +64,7 @@ public class VisitController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Download visit report PDF")
-    public ResponseEntity<Resource> getVisitPdf(@PathVariable UUID id) {
+    public ResponseEntity<Resource> getVisitPdf(@PathVariable Long id) {
         Resource pdf = visitService.getVisitPdf(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=visit-report-" + id + ".pdf")
@@ -76,7 +74,7 @@ public class VisitController {
 
     @PostMapping("/{id}/send-to-patient")
     @Operation(summary = "Send visit report to patient via email")
-    public ResponseEntity<MessageResponse> sendReportToPatient(@PathVariable UUID id) {
+    public ResponseEntity<MessageResponse> sendReportToPatient(@PathVariable Long id) {
         visitService.sendReportToPatient(id);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(new MessageResponse("Report email queued"));
@@ -85,7 +83,7 @@ public class VisitController {
     @PostMapping("/{id}/rating")
     @Operation(summary = "Rate a completed visit")
     public ResponseEntity<VisitService.RatingResponse> rateVisit(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @Valid @RequestBody CreateRatingRequest request) {
         VisitService.RatingResponse response = visitService.rateVisit(id, request.rating(), request.review());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

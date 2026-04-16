@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.UUID;
 
 /**
  * Authentication service handling registration, login, and token refresh.
@@ -50,28 +49,24 @@ public class AuthService {
 
         validatePassword(request.password());
 
-        User user = new User(
-            null,
-            request.email(),
-            passwordEncoder.encode(request.password()),
-            Role.PATIENT,
-            false,
-            false,
-            false,
-            false,
-            Instant.now(),
-            Instant.now(),
-            null
-        );
+        User user = new User();
+        user.setEmail(request.email());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setRole(Role.PATIENT);
+        user.setEnabled(true);
+        user.setAccountLocked(false);
+        user.setAccountExpired(false);
+        user.setCredentialsExpired(false);
+        user.setMfaEnabled(false);
 
         user = userRepository.save(user);
-        log.info("Registered new patient: {}", user.email());
+        log.info("Registered new patient: {}", user.getEmail());
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-            user.id(), user.email(), user.role().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.id());
+            user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        saveRefreshToken(user.id(), refreshToken, "web");
+        saveRefreshToken(user.getId(), refreshToken, "web");
 
         return new AuthResponse(
             accessToken,
@@ -88,28 +83,24 @@ public class AuthService {
 
         validatePassword(request.password());
 
-        User user = new User(
-            null,
-            request.email(),
-            passwordEncoder.encode(request.password()),
-            request.role() != null ? request.role() : Role.PROVIDER,
-            false,
-            false,
-            false,
-            false,
-            Instant.now(),
-            Instant.now(),
-            null
-        );
+        User user = new User();
+        user.setEmail(request.email());
+        user.setPasswordHash(passwordEncoder.encode(request.password()));
+        user.setRole(request.role() != null ? request.role() : Role.PROVIDER);
+        user.setEnabled(true);
+        user.setAccountLocked(false);
+        user.setAccountExpired(false);
+        user.setCredentialsExpired(false);
+        user.setMfaEnabled(false);
 
         user = userRepository.save(user);
-        log.info("Registered new provider: {} with role {}", user.email(), user.role());
+        log.info("Registered new provider: {} with role {}", user.getEmail(), user.getRole());
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-            user.id(), user.email(), user.role().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.id());
+            user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        saveRefreshToken(user.id(), refreshToken, "web");
+        saveRefreshToken(user.getId(), refreshToken, "web");
 
         return new AuthResponse(
             accessToken,
@@ -123,28 +114,24 @@ public class AuthService {
         User user = userRepository.findByEmail(request.email())
             .orElseThrow(() -> new ValidationException("Invalid credentials"));
 
-        if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ValidationException("Invalid credentials");
         }
 
-        if (!user.isEnabled()) {
+        if (!user.isActive()) {
             throw new ValidationException("Account is disabled");
         }
 
-        user = new User(
-            user.id(), user.email(), user.passwordHash(), user.role(),
-            user.mfaEnabled(), user.accountLocked(), user.accountExpired(),
-            user.credentialsExpired(), user.createdAt(), Instant.now(), Instant.now()
-        );
+        user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
-        log.info("User logged in: {}", user.email());
+        log.info("User logged in: {}", user.getEmail());
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-            user.id(), user.email(), user.role().name());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.id());
+            user.getId(), user.getEmail(), user.getRole().name());
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        saveRefreshToken(user.id(), refreshToken, "web");
+        saveRefreshToken(user.getId(), refreshToken, "web");
 
         return new AuthResponse(
             accessToken,
@@ -159,7 +146,7 @@ public class AuthService {
             throw new ValidationException("Invalid or expired refresh token");
         }
 
-        UUID userId = jwtTokenProvider.getUserIdFromToken(request.refreshToken());
+        Long userId = jwtTokenProvider.getUserIdFromToken(request.refreshToken());
 
         AuthToken storedToken = authTokenRepository
             .findByRefreshTokenAndRevokedFalse(request.refreshToken())
@@ -172,23 +159,19 @@ public class AuthService {
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
-        if (!user.isEnabled()) {
+        if (!user.isActive()) {
             throw new ValidationException("Account is disabled");
         }
 
         // Revoke old refresh token
-        AuthToken revokedToken = new AuthToken(
-            storedToken.id(), storedToken.userId(), storedToken.refreshToken(),
-            storedToken.deviceInfo(), storedToken.ipAddress(),
-            storedToken.issuedAt(), storedToken.expiresAt(), true
-        );
-        authTokenRepository.save(revokedToken);
+        storedToken.setRevoked(true);
+        authTokenRepository.save(storedToken);
 
         String accessToken = jwtTokenProvider.generateAccessToken(
-            user.id(), user.email(), user.role().name());
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.id());
+            user.getId(), user.getEmail(), user.getRole().name());
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        saveRefreshToken(user.id(), newRefreshToken, storedToken.deviceInfo());
+        saveRefreshToken(user.getId(), newRefreshToken, storedToken.getDeviceInfo());
 
         return new AuthResponse(
             accessToken,
@@ -197,12 +180,15 @@ public class AuthService {
         );
     }
 
-    private void saveRefreshToken(UUID userId, String refreshToken, String deviceInfo) {
+    private void saveRefreshToken(Long userId, String refreshToken, String deviceInfo) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(7, ChronoUnit.DAYS);
 
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
         AuthToken authToken = new AuthToken(
-            null, userId, refreshToken, deviceInfo, null, now, expiresAt, false
+            user, refreshToken, deviceInfo, null, expiresAt
         );
         authTokenRepository.save(authToken);
     }

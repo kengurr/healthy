@@ -29,150 +29,115 @@ public class BookingService {
 
     private static final Logger log = LoggerFactory.getLogger(BookingService.class);
 
-    /**
-     * Get available time slots for a service at an address on a given date.
-     * Uses Redis slot locking to prevent race conditions.
-     */
     @Transactional(readOnly = true)
     public List<TimeSlotResponse> getAvailableSlots(UUID serviceId, LocalDate date, UUID addressId) {
         log.info("Fetching available slots for service {} at address {} on {}", serviceId, addressId, date);
-
-        // Generate mock time slots (in production, would query provider availability)
         return List.of(
             new TimeSlotResponse(LocalTime.of(8, 0), LocalTime.of(9, 0), true),
             new TimeSlotResponse(LocalTime.of(9, 0), LocalTime.of(10, 0), true),
-            new TimeSlotResponse(LocalTime.of(10, 0), LocalTime.of(11, 0), false), // booked
+            new TimeSlotResponse(LocalTime.of(10, 0), LocalTime.of(11, 0), false),
             new TimeSlotResponse(LocalTime.of(11, 0), LocalTime.of(12, 0), true),
             new TimeSlotResponse(LocalTime.of(13, 0), LocalTime.of(14, 0), true),
             new TimeSlotResponse(LocalTime.of(14, 0), LocalTime.of(15, 0), true),
-            new TimeSlotResponse(LocalTime.of(15, 0), LocalTime.of(16, 0), false), // booked
+            new TimeSlotResponse(LocalTime.of(15, 0), LocalTime.of(16, 0), false),
             new TimeSlotResponse(LocalTime.of(16, 0), LocalTime.of(17, 0), true)
         );
     }
 
-    /**
-     * Create a new booking with slot locking.
-     * The slot lock ensures no double-booking during concurrent requests.
-     */
     @Transactional
-    public BookingResponse createBooking(UUID patientId, CreateBookingRequest request) {
+    public BookingResponse createBooking(Long patientId, CreateBookingRequest request) {
         log.info("Creating booking for patient {} - service: {}, date: {}, time: {}",
             patientId, request.serviceId(), request.date(), request.timeSlot());
 
-        // TODO: Implement Redis slot locking here
-        // SlotLock lock = slotLockService.tryLock(request.providerId(), request.date(), request.timeSlot());
-        // if (lock == null) throw new ConflictException("Time slot no longer available");
-
-        // Create mock booking
         LocalTime startTime = LocalTime.parse(request.timeSlot());
         TimeSlot timeSlot = new TimeSlot(startTime, startTime.plusHours(1));
 
-        Booking booking = new Booking(
-            System.currentTimeMillis(),
-            toLong(patientId),
-            request.providerId() != null ? toLong(request.providerId()) : 1L,
-            toLong(request.serviceId()),
-            request.packageId() != null ? toLong(request.packageId()) : null,
-            toLong(request.addressId()),
-            request.date(),
-            timeSlot,
-            BookingStatus.REQUESTED,
-            BigDecimal.valueOf(45.00),
-            PaymentStatus.PENDING,
-            null,
-            LocalDateTime.now(),
-            LocalDateTime.now(),
-            UUID.randomUUID().toString()
-        );
+        Booking booking = new Booking();
+        booking.setId(System.currentTimeMillis());
+        booking.setPatientId(patientId);
+        booking.setProviderId(request.providerId() != null ? request.providerId() : 1L);
+        booking.setServiceId(request.serviceId());
+        booking.setPackageId(request.packageId());
+        booking.setAddressId(request.addressId());
+        booking.setDate(request.date());
+        booking.setTimeSlot(timeSlot);
+        booking.setStatus(BookingStatus.REQUESTED);
+        booking.setPaymentAmount(BigDecimal.valueOf(45.00));
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setCreatedAt(LocalDateTime.now());
+        booking.setUpdatedAt(LocalDateTime.now());
+        booking.setIdempotencyKey(UUID.randomUUID().toString());
 
-        log.info("Created booking with id: {}", booking.id());
+        log.info("Created booking with id: {}", booking.getId());
         return toResponse(booking);
     }
 
     @Transactional(readOnly = true)
-    public BookingResponse getBookingById(UUID bookingId) {
-        // For MVP, return mock booking. In production, query by id
-        Booking booking = createMockBooking(toLong(bookingId));
+    public BookingResponse getBookingById(Long bookingId) {
+        Booking booking = createMockBooking(bookingId);
         return toResponse(booking);
     }
 
     @Transactional
-    public BookingResponse cancelBooking(UUID bookingId, UUID userId, String reason) {
-        Booking booking = createMockBooking(toLong(bookingId));
+    public BookingResponse cancelBooking(Long bookingId, Long userId, String reason) {
+        Booking booking = createMockBooking(bookingId);
 
         if (!booking.isCancellable()) {
             throw new ValidationException("Booking cannot be cancelled in current status");
         }
 
-        Booking cancelled = new Booking(
-            booking.id(), booking.patientId(), booking.providerId(),
-            booking.serviceId(), booking.packageId(), booking.addressId(),
-            booking.date(), booking.timeSlot(), BookingStatus.CANCELLED,
-            booking.paymentAmount(), booking.paymentStatus(),
-            reason, booking.createdAt(), LocalDateTime.now(),
-            booking.idempotencyKey()
-        );
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationReason(reason);
+        booking.setUpdatedAt(LocalDateTime.now());
 
         log.info("Cancelled booking: {}", bookingId);
-        return toResponse(cancelled);
+        return toResponse(booking);
     }
 
     @Transactional
-    public BookingResponse acceptBooking(UUID bookingId, UUID providerId) {
-        Booking booking = createMockBooking(toLong(bookingId));
+    public BookingResponse acceptBooking(Long bookingId, Long providerId) {
+        Booking booking = createMockBooking(bookingId);
 
-        if (booking.status() != BookingStatus.REQUESTED) {
+        if (booking.getStatus() != BookingStatus.REQUESTED) {
             throw new ValidationException("Cannot accept booking in current status");
         }
 
-        Booking confirmed = new Booking(
-            booking.id(), booking.patientId(), toLong(providerId),
-            booking.serviceId(), booking.packageId(), booking.addressId(),
-            booking.date(), booking.timeSlot(), BookingStatus.CONFIRMED,
-            booking.paymentAmount(), booking.paymentStatus(),
-            booking.cancellationReason(), booking.createdAt(), LocalDateTime.now(),
-            booking.idempotencyKey()
-        );
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setProviderId(providerId);
+        booking.setUpdatedAt(LocalDateTime.now());
 
         log.info("Provider {} accepted booking: {}", providerId, bookingId);
-        return toResponse(confirmed);
+        return toResponse(booking);
     }
 
     @Transactional
-    public BookingResponse rejectBooking(UUID bookingId, UUID providerId, String reason) {
-        Booking booking = createMockBooking(toLong(bookingId));
+    public BookingResponse rejectBooking(Long bookingId, Long providerId, String reason) {
+        Booking booking = createMockBooking(bookingId);
 
-        if (booking.status() != BookingStatus.REQUESTED) {
+        if (booking.getStatus() != BookingStatus.REQUESTED) {
             throw new ValidationException("Cannot reject booking in current status");
         }
 
-        Booking rejected = new Booking(
-            booking.id(), booking.patientId(), toLong(providerId),
-            booking.serviceId(), booking.packageId(), booking.addressId(),
-            booking.date(), booking.timeSlot(), BookingStatus.CANCELLED,
-            booking.paymentAmount(), booking.paymentStatus(),
-            reason, booking.createdAt(), LocalDateTime.now(),
-            booking.idempotencyKey()
-        );
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setProviderId(providerId);
+        booking.setCancellationReason(reason);
+        booking.setUpdatedAt(LocalDateTime.now());
 
         log.info("Provider {} rejected booking: {}", providerId, bookingId);
-        return toResponse(rejected);
+        return toResponse(booking);
     }
 
     @Transactional(readOnly = true)
-    public BookingListResponse getBookingHistory(UUID userId, BookingStatus status, int page, int size) {
-        // In production, query based on user role and status filter
+    public BookingListResponse getBookingHistory(Long userId, BookingStatus status, int page, int size) {
         List<BookingResponse> bookings = List.of(
             toResponse(createMockBooking(1L)),
             toResponse(createMockBooking(2L))
         );
-
         return new BookingListResponse(bookings, page, size, 2, 1);
     }
 
     @Transactional(readOnly = true)
-    public List<BookingResponse> getUpcomingBookings(UUID userId) {
-        // In production, query upcoming bookings for user
+    public List<BookingResponse> getUpcomingBookings(Long userId) {
         return List.of(
             toResponse(createMockBooking(1L)),
             toResponse(createMockBooking(2L))
@@ -180,7 +145,7 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
-    public BookingListResponse getProviderInbox(UUID providerId, String status, int page, int size) {
+    public BookingListResponse getProviderInbox(Long providerId, String status, int page, int size) {
         List<BookingInboxItem> items = List.of(
             new BookingInboxItem(
                 1L, 1L, "Janez", "Novak", "Home Nursing Care",
@@ -195,7 +160,6 @@ public class BookingService {
                 BookingStatus.CONFIRMED
             )
         );
-
         return new BookingListResponse(
             items.stream().map(this::toResponse).toList(),
             page, size, items.size(), 1
@@ -204,15 +168,23 @@ public class BookingService {
 
     private BookingResponse toResponse(Booking booking) {
         List<StatusTimelineItem> timeline = List.of(
-            new StatusTimelineItem(booking.status(), LocalDateTime.now(), null)
+            new StatusTimelineItem(booking.getStatus(), LocalDateTime.now(), null)
         );
-
         return new BookingResponse(
-            booking.id(), booking.patientId(), booking.providerId(),
-            booking.serviceId(), booking.packageId(), booking.addressId(),
-            booking.date(), booking.timeSlot().startTime().toString(),
-            booking.status(), booking.paymentAmount(), booking.paymentStatus(),
-            booking.cancellationReason(), booking.createdAt(), timeline
+            booking.getId(),
+            booking.getPatientId(),
+            booking.getProviderId(),
+            booking.getServiceId(),
+            booking.getPackageId(),
+            booking.getAddressId(),
+            booking.getDate(),
+            booking.getTimeSlot() != null ? booking.getTimeSlot().getStartTime().toString() : null,
+            booking.getStatus(),
+            booking.getPaymentAmount(),
+            booking.getPaymentStatus(),
+            booking.getCancellationReason(),
+            booking.getCreatedAt(),
+            timeline
         );
     }
 
@@ -228,21 +200,21 @@ public class BookingService {
 
     private Booking createMockBooking(Long id) {
         LocalTime time = LocalTime.of(9, 0);
-        return new Booking(
-            id, 1L, 2L, 1L, null, 1L,
-            LocalDate.now().plusDays(1),
-            new TimeSlot(time, time.plusHours(1)),
-            BookingStatus.CONFIRMED,
-            BigDecimal.valueOf(45.00),
-            PaymentStatus.PENDING,
-            null,
-            LocalDateTime.now().minusHours(2),
-            LocalDateTime.now(),
-            UUID.randomUUID().toString()
-        );
-    }
-
-    private Long toLong(UUID uuid) {
-        return uuid != null ? uuid.getMostSignificantBits() : null;
+        Booking booking = new Booking();
+        booking.setId(id);
+        booking.setPatientId(1L);
+        booking.setProviderId(2L);
+        booking.setServiceId(1L);
+        booking.setPackageId(null);
+        booking.setAddressId(1L);
+        booking.setDate(LocalDate.now().plusDays(1));
+        booking.setTimeSlot(new TimeSlot(time, time.plusHours(1)));
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setPaymentAmount(BigDecimal.valueOf(45.00));
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setCreatedAt(LocalDateTime.now().minusHours(2));
+        booking.setUpdatedAt(LocalDateTime.now());
+        booking.setIdempotencyKey(UUID.randomUUID().toString());
+        return booking;
     }
 }

@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
-import java.util.UUID;
 
 /**
  * JWT token generation and validation.
@@ -39,7 +38,7 @@ public class JwtTokenProvider {
         this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(UUID userId, String email, String role) {
+    public String generateAccessToken(Long userId, String email, String role) {
         Instant now = Instant.now();
         Instant expiry = now.plus(accessTokenExpiryMinutes, ChronoUnit.MINUTES);
 
@@ -53,7 +52,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    public String generateRefreshToken(UUID userId) {
+    public String generateRefreshToken(Long userId) {
         Instant now = Instant.now();
         Instant expiry = now.plus(refreshTokenExpiryDays, ChronoUnit.DAYS);
 
@@ -78,14 +77,14 @@ public class JwtTokenProvider {
         }
     }
 
-    public UUID getUserIdFromToken(String token) {
+    public Long getUserIdFromToken(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
 
-        return UUID.fromString(claims.getSubject());
+        return Long.parseLong(claims.getSubject());
     }
 
     public String getRoleFromToken(String token) {

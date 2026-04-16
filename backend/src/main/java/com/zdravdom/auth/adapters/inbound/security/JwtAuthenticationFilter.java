@@ -74,9 +74,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         return path.startsWith("/api/v1/auth/") ||
-               path.startsWith("/health") ||
-               path.startsWith("/swagger-ui") ||
-               path.startsWith("/v3/api-docs") ||
+               path.equals("/api/v1/health") ||
+               path.startsWith("/api/v1/swagger-ui") ||
+               path.startsWith("/api/v1/v3/api-docs") ||
                path.startsWith("/actuator");
     }
 
@@ -84,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * Authenticated principal containing JWT claims.
      */
     public record JwtAuthenticatedPrincipal(
-            java.util.UUID userId,
+            Long userId,
             String email,
             String role
     ) {}

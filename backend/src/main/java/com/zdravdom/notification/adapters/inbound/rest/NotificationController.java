@@ -52,7 +52,7 @@ public class NotificationController {
     @PutMapping("/{id}/read")
     @Operation(summary = "Mark notification as read")
     public ResponseEntity<NotificationResponse> markAsRead(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal) {
         NotificationResponse response = notificationService.markAsRead(id, principal.userId());
         return ResponseEntity.ok(response);

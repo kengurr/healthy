@@ -69,7 +69,7 @@ public class ProviderController {
     @Operation(summary = "Get public provider profile")
     public ResponseEntity<ProviderResponse> getProviderProfile(@PathVariable Long id) {
         // For MVP, return mock data. In production, query by provider id
-        ProviderResponse response = providerService.getProviderByUserId(UUID.randomUUID());
+        ProviderResponse response = providerService.getProviderByUserId(1L);
         return ResponseEntity.ok(response);
     }
 }
