@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Service for payment management with Stripe integration.
@@ -23,7 +22,7 @@ public class PaymentService {
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
 
     @Transactional
-    public PaymentIntentResponse createPaymentIntent(UUID bookingId, BigDecimal amount) {
+    public PaymentIntentResponse createPaymentIntent(Long bookingId, BigDecimal amount) {
         log.info("Creating payment intent for booking: {}, amount: {}", bookingId, amount);
 
         // In production, integrate with Stripe API:
@@ -54,7 +53,7 @@ public class PaymentService {
     }
 
     @Transactional(readOnly = true)
-    public PaymentListResponse getPaymentHistory(UUID userId, int page, int size) {
+    public PaymentListResponse getPaymentHistory(Long userId, int page, int size) {
         log.info("Fetching payment history for user: {}", userId);
 
         List<PaymentResponse> payments = List.of(
@@ -81,16 +80,12 @@ public class PaymentService {
 
         return new PaymentResponse(
             System.currentTimeMillis(),
-            toLong(request.bookingId()),
+            request.bookingId(),
             request.amount(),
             "EUR",
             PaymentStatus.REFUNDED,
             "pi_mock_refund_" + System.currentTimeMillis(),
             LocalDateTime.now()
         );
-    }
-
-    private Long toLong(UUID uuid) {
-        return uuid != null ? uuid.getMostSignificantBits() : null;
     }
 }

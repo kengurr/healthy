@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * Service for push notification management.
@@ -23,13 +22,13 @@ public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     @Transactional
-    public void registerPushToken(UUID userId, String token, Platform platform) {
+    public void registerPushToken(Long userId, String token, Platform platform) {
         log.info("Registering push token for user: {}, platform: {}", userId, platform);
         // In production, save to database and register with FCM/APNs
     }
 
     @Transactional(readOnly = true)
-    public NotificationListResponse getNotifications(UUID userId, int page, int size) {
+    public NotificationListResponse getNotifications(Long userId, int page, int size) {
         log.info("Fetching notifications for user: {}", userId);
 
         List<NotificationResponse> notifications = List.of(
@@ -51,19 +50,15 @@ public class NotificationService {
     }
 
     @Transactional
-    public NotificationResponse markAsRead(UUID notificationId, UUID userId) {
+    public NotificationResponse markAsRead(Long notificationId, Long userId) {
         log.info("Marking notification {} as read for user: {}", notificationId, userId);
         return new NotificationResponse(
-            toLong(notificationId),
+            notificationId,
             "Booking Confirmed",
             "Your home nursing visit is confirmed for tomorrow at 9:00",
             Map.of("bookingId", "1"),
             true,
             LocalDateTime.now().minusHours(1)
         );
-    }
-
-    private Long toLong(UUID uuid) {
-        return uuid != null ? uuid.getMostSignificantBits() : null;
     }
 }

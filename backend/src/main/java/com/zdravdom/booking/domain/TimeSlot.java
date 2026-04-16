@@ -1,31 +1,41 @@
 package com.zdravdom.booking.domain;
 
+import jakarta.persistence.*;
 import java.time.LocalTime;
 
 /**
- * Time slot representing a booking window.
+ * TimeSlot embedded in Booking.
+ * Maps to start_time and end_time columns in booking.bookings.
  */
-public record TimeSlot(
-    LocalTime startTime,
-    LocalTime endTime
-) {
-    public TimeSlot {
-        if (startTime == null) {
-            throw new IllegalArgumentException("Start time cannot be null");
-        }
-        if (endTime == null) {
-            throw new IllegalArgumentException("End time cannot be null");
-        }
-        if (startTime.isAfter(endTime) || startTime.equals(endTime)) {
-            throw new IllegalArgumentException("Start time must be before end time");
-        }
+@Embeddable
+public class TimeSlot {
+
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
+
+    // Default constructor for JPA
+    public TimeSlot() {}
+
+    public TimeSlot(LocalTime startTime, LocalTime endTime) {
+        this.startTime = startTime;
+        this.endTime = endTime;
     }
 
+    public LocalTime getStartTime() { return startTime; }
+    public LocalTime getEndTime() { return endTime; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+
     public int getDurationMinutes() {
+        if (startTime == null || endTime == null) return 0;
         return (int) java.time.Duration.between(startTime, endTime).toMinutes();
     }
 
     public boolean overlaps(TimeSlot other) {
+        if (other == null) return false;
         return this.startTime.isBefore(other.endTime) && this.endTime.isAfter(other.startTime);
     }
 }

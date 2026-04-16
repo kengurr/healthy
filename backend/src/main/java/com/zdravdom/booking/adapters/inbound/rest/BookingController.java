@@ -51,7 +51,7 @@ public class BookingController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get booking details")
-    public ResponseEntity<BookingResponse> getBooking(@PathVariable UUID id) {
+    public ResponseEntity<BookingResponse> getBooking(@PathVariable Long id) {
         BookingResponse response = bookingService.getBookingById(id);
         return ResponseEntity.ok(response);
     }
@@ -59,7 +59,7 @@ public class BookingController {
     @PutMapping("/{id}/cancel")
     @Operation(summary = "Cancel a booking")
     public ResponseEntity<BookingResponse> cancelBooking(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
             @RequestBody(required = false) CancelBookingRequest request) {
         String reason = request != null ? request.reason() : null;
@@ -70,7 +70,7 @@ public class BookingController {
     @PutMapping("/{id}/accept")
     @Operation(summary = "Provider accepts a booking")
     public ResponseEntity<BookingResponse> acceptBooking(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal) {
         BookingResponse response = bookingService.acceptBooking(id, principal.userId());
         return ResponseEntity.ok(response);
@@ -79,7 +79,7 @@ public class BookingController {
     @PutMapping("/{id}/reject")
     @Operation(summary = "Provider rejects a booking")
     public ResponseEntity<BookingResponse> rejectBooking(
-            @PathVariable UUID id,
+            @PathVariable Long id,
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
             @RequestBody RejectBookingRequest request) {
         BookingResponse response = bookingService.rejectBooking(id, principal.userId(), request.reason());
