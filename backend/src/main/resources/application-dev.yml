@@ -1,0 +1,103 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5432}/${DATABASE_NAME:zdravdom_dev}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    validate-on-migrate: false  # Allow schema changes during dev
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 5000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+# Dev-specific AWS S3 (MinIO compatible)
+aws:
+  s3:
+    endpoint: ${AWS_S3_ENDPOINT:http://localhost:9000}
+    region: ${AWS_REGION:eu-central-1}
+    access-key: ${AWS_ACCESS_KEY_ID:minioadmin}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:minioadmin}
+    bucket:
+      documents: ${AWS_S3_BUCKET_DOCUMENTS:zdravdom-documents-dev}
+      reports: ${AWS_S3_BUCKET_REPORTS:zdravdom-reports-dev}
+      media: ${AWS_S3_BUCKET_MEDIA:zdravdom-media-dev}
+
+# JWT Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-key-not-for-production-use-minimum-32-chars}
+    access-token-expiry: 900000        # 15 minutes
+    refresh-token-expiry: 604800000     # 7 days
+
+# Dev logging
+logging:
+  level:
+    root: INFO
+    com.zdravdom: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.security: DEBUG
+    org.springframework.kafka: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Dev server
+server:
+  port: ${APP_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+
+# Dev actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# Dev Resilience4j - More lenient for testing
+resilience4j:
+  circuitbreaker:
+    instances:
+      stripe:
+        sliding-window-size: 5
+        failure-rate-threshold: 80
+        wait-duration-in-open-state: 30000
+      nijz:
+        sliding-window-size: 3
+        failure-rate-threshold: 80
+        wait-duration-in-open-state: 20000
+      zzzs:
+        sliding-window-size: 3
+        failure-rate-threshold: 80
+        wait-duration-in-open-state: 20000

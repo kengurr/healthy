@@ -1,0 +1,47 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+aws:
+  s3:
+    endpoint: http://localhost:9000
+    region: eu-central-1
+    access-key: test
+    secret-key: test
+
+app:
+  jwt:
+    secret: test-secret-key-for-unit-testing-minimum-32-characters-long
+    access-token-expiry: 900000
+    refresh-token-expiry: 604800000
+
+logging:
+  level:
+    root: WARN
+    com.zdravdom: INFO

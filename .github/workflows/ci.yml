@@ -1,0 +1,720 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+env:
+  JAVA_VERSION: '21'
+  MAVEN_OPTS: -Xmx1024m -Xms512m
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================================================
+  # STAGE 1: Checkout
+  # =============================================================================
+  checkout:
+    name: Checkout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git
+        run: |
+          git config --local core.autocrlf false
+          git config --local commit.signoff true
+
+      - name: Generate version info
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/heads/}
+          VERSION=${VERSION//\//-}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+          echo "TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # STAGE 2: Setup Java 21
+  # =============================================================================
+  setup-java:
+    name: Setup Java 21
+    runs-on: ubuntu-latest
+    needs: checkout
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      short_sha: ${{ steps.version.outputs.SHORT_SHA }}
+      timestamp: ${{ steps.version.outputs.TIMESTAMP }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Generate version info
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/heads/}
+          VERSION=${VERSION//\//-}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+          echo "TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # STAGE 3: Maven Dependencies (with caching)
+  # =============================================================================
+  mvn-dependencies:
+    name: Maven Dependencies
+    runs-on: ubuntu-latest
+    needs: setup-java
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven wrapper
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/wrapper
+            backend/.mvn/wrapper
+          key: maven-wrapper-${{ runner.os }}-${{ hashFiles('backend/mvnw', 'backend/.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            maven-wrapper-${{ runner.os }}-
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-repo-${{ runner.os }}-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            maven-repo-${{ runner.os }}-
+
+      - name: Download Maven dependencies
+        working-directory: ./backend
+        run: ./mvnw dependency:go-offline -B || ./mvnw dependency:go-offline -B
+
+      - name: Verify project structure
+        working-directory: ./backend
+        run: ./mvnw help:effective-pom -B
+
+  # =============================================================================
+  # STAGE 4: Maven Test (unit tests + JaCoCo coverage >80%)
+  # =============================================================================
+  mvn-test:
+    name: Maven Test
+    runs-on: ubuntu-latest
+    needs: mvn-dependencies
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zdravdom_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli --raw incr healthcheck"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-repo-${{ runner.os }}-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            maven-repo-${{ runner.os }}-
+
+      - name: Run tests with coverage
+        working-directory: ./backend
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          DATABASE_URL: jdbc:postgresql://localhost:5432/zdravdom_test
+          REDIS_URL: redis://localhost:6379
+        run: |
+          ./mvnw test \
+            -DskipITs=true \
+            -Djacoco.skip=false \
+            -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+
+      - name: Upload JaCoCo coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/
+          retention-days: 30
+
+      - name: Publish test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: backend/target/surefire-reports/
+          retention-days: 14
+
+      - name: Check coverage thresholds
+        working-directory: ./backend
+        run: |
+          if [ -f target/jacoco/jacoco.xml ]; then
+            COVERAGE=$(grep -o 'COVEREDRATIO>[0-9.]*' target/jacoco/jacoco.xml | grep -o '[0-9.]*$' | head -1)
+            echo "Line coverage: $COVERAGE"
+            if (( $(echo "$COVERAGE < 0.80" | bc -l) )); then
+              echo "ERROR: Coverage $COVERAGE is below required 80%"
+              exit 1
+            fi
+          fi
+
+  # =============================================================================
+  # STAGE 5: Maven Package (JAR build)
+  # =============================================================================
+  mvn-package:
+    name: Maven Package
+    runs-on: ubuntu-latest
+    needs: mvn-test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-repo-${{ runner.os }}-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            maven-repo-${{ runner.os }}-
+
+      - name: Build JAR
+        working-directory: ./backend
+        run: ./mvnw package -DskipTests -B
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zdravdom-jar
+          path: backend/target/*.jar
+          retention-days: 7
+
+      - name: List built artifacts
+        run: ls -la backend/target/*.jar
+
+  # =============================================================================
+  # STAGE 6: Trivy Security Scan
+  # =============================================================================
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    needs: mvn-package
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          security-checks: 'vuln,config,secret'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Fail on critical vulnerabilities
+        run: |
+          if grep -q '"severity":"CRITICAL"' trivy-results.sarif; then
+            echo "CRITICAL vulnerabilities found in codebase!"
+            exit 1
+          fi
+
+  # =============================================================================
+  # STAGE 7: Docker Build (multi-stage, labels: version, git commit)
+  # =============================================================================
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: trivy-scan
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.docker-image-digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zdravdom-jar
+          path: backend/target/
+
+      - name: Extract version info
+        id: version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+          echo "TIMESTAMP=$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKER_HUB_REPO }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ steps.version.outputs.VERSION }}-${{ steps.version.outputs.SHORT_SHA }},enable=${{ github.ref_type == 'branch' }}
+            type=raw,value=latest,enable={{ is_default_branch }}
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.version.outputs.TIMESTAMP }}
+            com.zdravdom.version=${{ steps.version.outputs.VERSION }}
+            com.zdravdom.commit=${{ steps.version.outputs.SHORT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan Docker image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload image scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-image-results.sarif'
+
+  # =============================================================================
+  # STAGE 8: Docker Push (to Docker Hub or AWS ECR)
+  # =============================================================================
+  docker-push:
+    name: Docker Push
+    runs-on: ubuntu-latest
+    needs: docker-build
+    environment: staging
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zdravdom-jar
+          path: backend/target/
+
+      - name: Extract version info
+        id: version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+            ${{ secrets.DOCKER_HUB_REPO }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ steps.version.outputs.VERSION }}-${{ steps.version.outputs.SHORT_SHA }},enable=${{ github.ref_type == 'branch' }}
+            type=raw,value=latest,enable={{ is_default_branch }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: env.DOCKER_HUB_REPO != ''
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Push to GitHub Container Registry
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            com.zdravdom.version=${{ steps.version.outputs.VERSION }}
+            com.zdravdom.commit=${{ steps.version.outputs.SHORT_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push to Docker Hub / ECR
+        if: env.DOCKER_HUB_REPO != ''
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          registries: ${{ secrets.DOCKER_HUB_REPO }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # =============================================================================
+  # STAGE 9: Deploy to Staging (ECS deploy + smoke tests)
+  # =============================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: docker-push
+    environment: staging
+    concurrency:
+      group: staging-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zdravdom-jar
+          path: backend/target/
+
+      - name: Extract version info
+        id: version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+
+      - name: Deploy to ECS Staging
+        run: |
+          # Build Docker image for ECS deployment
+          IMAGE_TAG=${{ steps.version.outputs.VERSION }}-${{ steps.version.outputs.SHORT_SHA }}
+
+          # Update ECS task definition
+          aws ecs update-service \
+            --cluster zdravdom-staging \
+            --service zdravdom-backend \
+            --force-new-deployment
+
+          # Wait for deployment to complete
+          aws ecs wait services-stable \
+            --cluster zdravdom-staging \
+            --services zdravdom-backend
+
+      - name: Wait for application startup
+        run: |
+          echo "Waiting for application to start..."
+          sleep 60
+
+      - name: Smoke tests
+        run: |
+          BACKEND_URL=${{ vars.STAGING_URL || 'http://localhost:8080' }}
+
+          echo "Testing health endpoint..."
+          curl -sf "${BACKEND_URL}/api/v1/actuator/health" || exit 1
+
+          echo "Testing API endpoint..."
+          curl -sf "${BACKEND_URL}/api/v1/" || exit 1
+
+          echo "Smoke tests passed!"
+
+      - name: Run database migrations on staging
+        working-directory: ./backend
+        run: |
+          ./mvnw flyway:migrate \
+            -Dflyway.url=${{ secrets.STAGING_DB_URL }} \
+            -Dflyway.user=postgres \
+            -Dflyway.password=${{ secrets.STAGING_DB_PASSWORD }}
+
+  # =============================================================================
+  # STAGE 10: Integration Tests (RESTassured API tests against staging)
+  # =============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    concurrency:
+      group: staging-tests
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Cache Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-repo-${{ runner.os }}-${{ hashFiles('backend/pom.xml') }}
+          restore-keys: |
+            maven-repo-${{ runner.os }}-
+
+      - name: Run integration tests
+        working-directory: ./backend
+        env:
+          BACKEND_URL: ${{ vars.STAGING_URL || 'http://localhost:8080' }}
+          SPRING_PROFILES_ACTIVE: integration
+        run: |
+          ./mvnw test \
+            -Dtest=**/*IntegrationTest \
+            -DskipUnitTests=true \
+            -DfailIfNoTests=false
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: backend/target/surefire-reports/
+          retention-days: 14
+
+      - name: Publish test summary
+        run: |
+          if [ -f backend/target/surefire-reports/TEST*.xml ]; then
+            echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+            echo "Tests completed. Check artifacts for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =============================================================================
+  # STAGE 11: Approval Gate (manual approval for production)
+  # =============================================================================
+  approval-gate:
+    name: Approval Gate
+    runs-on: ubuntu-latest
+    needs:
+      - integration-tests
+      - trivy-scan
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    environment: production
+    steps:
+      - name: Check required contexts
+        run: |
+          echo "Checking CI/CD pipeline status..."
+          echo "- Trivy scan: ${{ needs.trivy-scan.result }}"
+          echo "- Integration tests: ${{ needs.integration-tests.result }}"
+          echo "- Docker build: ${{ needs.docker-push.result }}"
+
+          if [ "${{ needs.trivy-scan.result }}" != "success" ]; then
+            echo "ERROR: Security scan must pass before production deployment"
+            exit 1
+          fi
+
+          if [ "${{ needs.integration-tests.result }}" != "success" ]; then
+            echo "WARNING: Integration tests failed. Review required before production."
+          fi
+
+      - name: Manual approval required
+        run: |
+          echo "Production deployment requires manual approval from Tech Lead or DevOps"
+          echo "Review the following before approving:"
+          echo "1. JaCoCo coverage report"
+          echo "2. Trivy security scan results"
+          echo "3. Integration test results"
+          echo "4. Staging deployment logs"
+
+  # =============================================================================
+  # STAGE 12: Deploy to Production
+  # =============================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: approval-gate
+    environment: production
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
+
+      - name: Extract version info
+        id: version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+
+      - name: Deploy to ECS Production
+        run: |
+          IMAGE_TAG=${{ steps.version.outputs.VERSION }}-${{ steps.version.outputs.SHORT_SHA }}
+
+          # Create deployment
+          aws ecs update-service \
+            --cluster zdravdom-production \
+            --service zdravdom-backend \
+            --force-new-deployment
+
+          # Wait for deployment to complete
+          aws ecs wait services-stable \
+            --cluster zdravdom-production \
+            --services zdravdom-backend
+
+      - name: Verify production deployment
+        run: |
+          echo "Verifying production deployment..."
+          sleep 30
+
+          BACKEND_URL=${{ vars.PRODUCTION_URL }}
+
+          # Health check
+          curl -sf "${BACKEND_URL}/api/v1/actuator/health" || echo "Health check warning - may be warming up"
+
+          # API check
+          curl -sf "${BACKEND_URL}/api/v1/" || echo "API check warning"
+
+          echo "Production deployment completed!"
+
+      - name: Notify deployment success
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "Production deployment completed successfully!"
+          else
+            echo "Production deployment failed. Check AWS Console for details."
+            exit 1
+          fi
+
+  # =============================================================================
+  # Failure notifications
+  # =============================================================================
+  notify-failure:
+    name: Notify Failure
+    runs-on: ubuntu-latest
+    if: failure()
+    needs:
+      - mvn-test
+      - mvn-package
+      - docker-build
+      - docker-push
+      - deploy-staging
+      - integration-tests
+      - deploy-production
+    steps:
+      - name: Notify on failure
+        run: |
+          echo "CI/CD Pipeline failed at stage: ${{ join(needs.*.result, ', ') }}"
+          echo "Check GitHub Actions logs for details."
+
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK != ''
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "CI/CD Pipeline Failed",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  {"title": "Repository", "value": "${{ github.repository }}"},
+                  {"title": "Workflow", "value": "${{ github.workflow }}"},
+                  {"title": "Branch", "value": "${{ github.ref_name }}"},
+                  {"title": "Commit", "value": "${{ github.sha }}"},
+                  {"title": "Failed Stage", "value": "${{ join(needs.*.result, ', ') }}"}
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

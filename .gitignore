@@ -1,0 +1,156 @@
+# =============================================================================
+# Zdravdom Project .gitignore
+# =============================================================================
+
+# =============================================================================
+# Java / Maven
+# =============================================================================
+backend/target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/**/target/
+!.mvn/wrapper/
+
+# Maven wrapper
+backend/mvnw
+backend/mvnw.cmd
+
+# Build output
+*.jar
+*.war
+*.ear
+*.class
+
+# Gradle (if used)
+# build/
+# gradle/
+# gradlew
+# gradlew.bat
+
+# =============================================================================
+# Node.js / npm / React Native / Expo
+# =============================================================================
+patient-app/node_modules/
+patient-app/.expo/
+patient-app/dist/
+patient-app/web-build/
+patient-app/package-lock.json
+patient-app/npm-debug.log*
+patient-app/yarn-debug.log*
+patient-app/yarn-error.log*
+
+provider-app/node_modules/
+provider-app/.expo/
+provider-app/dist/
+provider-app/web-build/
+provider-app/package-lock.json
+provider-app/npm-debug.log*
+provider-app/yarn-debug.log*
+provider-app/yarn-error.log*
+
+admin-portal/node_modules/
+admin-portal/dist/
+admin-portal/build/
+admin-portal/package-lock.json
+admin-portal/npm-debug.log*
+admin-portal/yarn-debug.log*
+admin-portal/yarn-error.log*
+
+shared/node_modules/
+shared/package-lock.json
+shared/npm-debug.log*
+shared/yarn-debug.log*
+shared/yarn-error.log*
+
+# Expo (global)
+.expo/
+expo-env.d.ts
+
+# Mobile builds
+*.apk
+*.aab
+
+# =============================================================================
+# Python
+# =============================================================================
+design/__pycache__/
+design/*.py[cod]
+design/*.egg-info/
+design/dist/
+design/build/
+design/venv/
+design/.venv/
+*.egg
+
+# =============================================================================
+# IDEs
+# =============================================================================
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# IntelliJ
+.idea/workspace.xml
+.idea/shelf/
+.idea/usage.statistics.xml
+.idea/dependencies.xml
+.idea/dictionaries/
+.idea/jsLibraryMappings.xml
+.idea/jsRemoteLibraries.xml
+.idea/vcs.xml
+.idea/csv/data.xml
+.idea/dataSources/
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/uiDesigner.xml
+.idea/inspectionProfiles/
+.idea/httpRequests/
+.idea/queries/
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.yaml
+secrets.yml
+secrets.json
+
+# Terraform
+infrastructure/.terraform/
+infrastructure/*.tfstate
+infrastructure/*.tfstate.*
+infrastructure/.terraform.lock.hcl
+
+# =============================================================================
+# Logs & Temporary Files
+# =============================================================================
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+
+# Docx temp files (python-docx creates these)
+docx_backend/
+docx_ui/
+docx_temp/
+docx_temp2/
+docx_commercial/
+
+# =============================================================================
+# Security / Compliance (never commit)
+# =============================================================================
+*.scrt
+*.vault

@@ -1,0 +1,2400 @@
+openapi: 3.0.3
+info:
+  title: Zdravdom API
+  description: Home healthcare platform API
+  version: 1.0.0
+  contact:
+    name: Zdravdom Development Team
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ─── Enums ───────────────────────────────────────────────────────────────
+
+    Role:
+      type: string
+      enum: [PATIENT, PROVIDER, OPERATOR, ADMIN, SUPERADMIN]
+
+    ProviderStatus:
+      type: string
+      enum: [PENDING, VERIFIED, ACTIVE, REJECTED, SUSPENDED]
+
+    BookingStatus:
+      type: string
+      enum: [REQUESTED, CONFIRMED, IN_PROGRESS, COMPLETED, CANCELLED]
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, PAID, REFUNDED, FAILED]
+
+    VisitStatus:
+      type: string
+      enum: [SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED]
+
+    UrgencyType:
+      type: string
+      enum: [MEDICAL_EMERGENCY, SUSPECTED_ABUSE, MEDICATION_ERROR, PATIENT_DECLINING, OTHER]
+
+    Platform:
+      type: string
+      enum: [IOS, ANDROID]
+
+    ServiceCategory:
+      type: string
+      enum: [NURSING, THERAPY, LABORATORY, SPECIALIST]
+
+    DayOfWeek:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+
+    # ─── Shared ───────────────────────────────────────────────────────────────
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 0
+          default: 0
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        total:
+          type: integer
+          description: Total number of elements
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Invalid request data
+        field:
+          type: string
+          example: email
+        timestamp:
+          type: string
+          format: date-time
+
+    Address:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+          example: Home
+        street:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+          default: Slovenia
+        gpsLat:
+          type: number
+          format: double
+        gpsLng:
+          type: number
+          format: double
+        isDefault:
+          type: boolean
+
+    EmergencyContact:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        relation:
+          type: string
+
+    InsuranceDetails:
+      type: object
+      properties:
+        provider:
+          type: string
+        policyNumber:
+          type: string
+
+    GPSLocation:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+
+    Vitals:
+      type: object
+      properties:
+        bloodPressure:
+          type: string
+          example: "120/80"
+        heartRate:
+          type: integer
+          example: 72
+        temperature:
+          type: number
+          format: float
+          example: 36.6
+        o2Saturation:
+          type: integer
+          example: 98
+
+    # ─── Auth ──────────────────────────────────────────────────────────────────
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - phone
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token (15 min expiry)
+        refreshToken:
+          type: string
+          description: JWT refresh token (7 days expiry)
+        expiresIn:
+          type: integer
+          example: 900
+
+    ProviderRegisterRequest:
+      type: object
+      required:
+        - email
+        - phone
+        - password
+        - role
+        - profession
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        password:
+          type: string
+          minLength: 8
+        role:
+          $ref: '#/components/schemas/Role'
+        profession:
+          type: string
+          example: Nurse
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    # ─── Patient ───────────────────────────────────────────────────────────────
+
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        gender:
+          type: string
+        addresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+        insuranceDetails:
+          $ref: '#/components/schemas/InsuranceDetails'
+        allergies:
+          type: array
+          items:
+            type: string
+        chronicConditions:
+          type: array
+          items:
+            type: string
+        emergencyContact:
+          $ref: '#/components/schemas/EmergencyContact'
+
+    UpdatePatientRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        insuranceDetails:
+          $ref: '#/components/schemas/InsuranceDetails'
+        allergies:
+          type: array
+          items:
+            type: string
+        chronicConditions:
+          type: array
+          items:
+            type: string
+        emergencyContact:
+          $ref: '#/components/schemas/EmergencyContact'
+
+    AddAddressRequest:
+      type: object
+      required:
+        - label
+        - street
+        - city
+        - postalCode
+      properties:
+        label:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+          default: Slovenia
+        gpsLat:
+          type: number
+          format: double
+        gpsLng:
+          type: number
+          format: double
+        isDefault:
+          type: boolean
+          default: false
+
+    DocumentUploadRequest:
+      type: object
+      required:
+        - type
+        - description
+      properties:
+        type:
+          type: string
+          example: MEDICAL_RECORD
+        description:
+          type: string
+
+    GDPRExportResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        downloadUrl:
+          type: string
+          description: Presigned S3 URL when completed
+
+    # ─── Service / Catalog ─────────────────────────────────────────────────────
+
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Home Nursing Care
+        category:
+          $ref: '#/components/schemas/ServiceCategory'
+        description:
+          type: string
+        duration:
+          type: integer
+          description: Estimated duration in minutes
+          example: 60
+        price:
+          type: number
+          format: float
+          example: 45.00
+        currency:
+          type: string
+          default: EUR
+        rating:
+          type: number
+          format: float
+        reviewsCount:
+          type: integer
+        imageUrl:
+          type: string
+        includedItems:
+          type: array
+          items:
+            type: string
+
+    ServicePackage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: S
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        duration:
+          type: integer
+          description: Duration in minutes
+
+    ProviderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        role:
+          type: string
+        profession:
+          type: string
+        specialty:
+          type: string
+        rating:
+          type: number
+          format: float
+        reviewsCount:
+          type: integer
+        distance:
+          type: number
+          description: Distance in km
+        languages:
+          type: array
+          items:
+            type: string
+        experience:
+          type: integer
+          description: Years of experience
+        bio:
+          type: string
+        photoUrl:
+          type: string
+        status:
+          $ref: '#/components/schemas/ProviderStatus'
+
+    # ─── Availability ─────────────────────────────────────────────────────────
+
+    WeeklyScheduleItem:
+      type: object
+      required:
+        - day
+        - startTime
+        - endTime
+      properties:
+        day:
+          $ref: '#/components/schemas/DayOfWeek'
+        startTime:
+          type: string
+          example: "09:00"
+        endTime:
+          type: string
+          example: "17:00"
+
+    ProviderAvailability:
+      type: object
+      properties:
+        weeklySchedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyScheduleItem'
+        blockedDates:
+          type: array
+          items:
+            type: string
+            format: date
+
+    UpdateAvailabilityRequest:
+      type: object
+      properties:
+        weeklySchedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/WeeklyScheduleItem'
+        blockedDates:
+          type: array
+          items:
+            type: string
+            format: date
+
+    TimeSlot:
+      type: object
+      properties:
+        time:
+          type: string
+          example: "09:00"
+        endTime:
+          type: string
+          example: "10:00"
+        available:
+          type: boolean
+
+    SlotQuery:
+      type: object
+      required:
+        - serviceId
+        - date
+        - addressId
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        addressId:
+          type: string
+          format: uuid
+
+    # ─── Booking ───────────────────────────────────────────────────────────────
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - serviceId
+        - addressId
+        - date
+        - timeSlot
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        addressId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        timeSlot:
+          type: string
+          example: "09:00"
+        providerId:
+          type: string
+          format: uuid
+          description: Optional preferred provider
+        notes:
+          type: string
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        providerId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        packageId:
+          type: string
+          format: uuid
+        addressId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        timeSlot:
+          type: string
+          example: "09:00"
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        paymentAmount:
+          type: number
+          format: float
+        paymentStatus:
+          $ref: '#/components/schemas/PaymentStatus'
+        createdAt:
+          type: string
+          format: date-time
+        statusTimeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/StatusTimelineItem'
+
+    StatusTimelineItem:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        timestamp:
+          type: string
+          format: date-time
+        note:
+          type: string
+
+    BookingInbox:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        patientFirstName:
+          type: string
+        patientLastName:
+          type: string
+        serviceName:
+          type: string
+        address:
+          $ref: '#/components/schemas/Address'
+        date:
+          type: string
+          format: date
+        timeSlot:
+          type: string
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+
+    CancelBookingRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    RejectBookingRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+
+    BookingListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    # ─── Visit ──────────────────────────────────────────────────────────────────
+
+    CompleteVisitRequest:
+      type: object
+      required:
+        - vitals
+        - clinicalNotes
+      properties:
+        vitals:
+          $ref: '#/components/schemas/Vitals'
+        clinicalNotes:
+          type: string
+        proceduresPerformed:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        recommendations:
+          type: string
+        patientSignature:
+          type: string
+          description: Base64-encoded PNG signature
+
+    Visit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+          format: uuid
+        providerId:
+          type: string
+          format: uuid
+        patientId:
+          type: string
+          format: uuid
+        vitals:
+          $ref: '#/components/schemas/Vitals'
+        clinicalNotes:
+          type: string
+        proceduresPerformed:
+          type: array
+          items:
+            type: string
+        photos:
+          type: array
+          items:
+            type: string
+            format: uri
+        recommendations:
+          type: string
+        patientSignature:
+          type: string
+        status:
+          $ref: '#/components/schemas/VisitStatus'
+        reportUrl:
+          type: string
+          format: uri
+
+    EscalationRequest:
+      type: object
+      required:
+        - urgencyType
+        - notes
+      properties:
+        urgencyType:
+          $ref: '#/components/schemas/UrgencyType'
+        notes:
+          type: string
+        gpsLocation:
+          $ref: '#/components/schemas/GPSLocation'
+
+    Escalation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        visitId:
+          type: string
+          format: uuid
+        urgencyType:
+          $ref: '#/components/schemas/UrgencyType'
+        notes:
+          type: string
+        gpsLocation:
+          $ref: '#/components/schemas/GPSLocation'
+        timestamp:
+          type: string
+          format: date-time
+        notifiedUsers:
+          type: array
+          items:
+            type: string
+
+    # ─── Payments ───────────────────────────────────────────────────────────────
+
+    CreatePaymentIntentRequest:
+      type: object
+      required:
+        - bookingId
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+
+    PaymentIntentResponse:
+      type: object
+      properties:
+        clientSecret:
+          type: string
+        paymentIntentId:
+          type: string
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        bookingId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+          default: EUR
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+        stripePaymentIntentId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RefundRequest:
+      type: object
+      required:
+        - bookingId
+        - amount
+      properties:
+        bookingId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        reason:
+          type: string
+
+    # ─── Notifications ──────────────────────────────────────────────────────────
+
+    RegisterPushTokenRequest:
+      type: object
+      required:
+        - token
+        - platform
+      properties:
+        token:
+          type: string
+        platform:
+          $ref: '#/components/schemas/Platform'
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    # ─── Ratings ───────────────────────────────────────────────────────────────
+
+    CreateRatingRequest:
+      type: object
+      required:
+        - rating
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        review:
+          type: string
+
+# ─── Security ─────────────────────────────────────────────────────────────────
+
+security:
+  - BearerAuth: []
+
+# ─── Paths ────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ── Health ──────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      summary: Health check endpoint
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+
+  # ── Auth ─────────────────────────────────────────────────────────────────────
+
+  /auth/register:
+    post:
+      summary: Register a new patient account
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Patient registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: Login with email and password
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Account suspended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Patients ────────────────────────────────────────────────────────────────
+
+  /patients/me:
+    get:
+      summary: Get current patient profile
+      tags: [Patients]
+      responses:
+        '200':
+          description: Patient profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update current patient profile
+      tags: [Patients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePatientRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /patients/me/addresses:
+    get:
+      summary: List saved addresses
+      tags: [Patients]
+      responses:
+        '200':
+          description: List of addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Add a new address
+      tags: [Patients]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddAddressRequest'
+      responses:
+        '201':
+          description: Address added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /patients/me/documents:
+    post:
+      summary: Upload a medical document
+      tags: [Patients]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - type
+                - description
+              properties:
+                file:
+                  type: string
+                  format: binary
+                type:
+                  type: string
+                  example: MEDICAL_RECORD
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  url:
+                    type: string
+                    format: uri
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /patients/me/gdpr/export:
+    get:
+      summary: Trigger GDPR data export (async ZIP)
+      tags: [Patients]
+      responses:
+        '202':
+          description: Export job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GDPRExportResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Services ─────────────────────────────────────────────────────────────────
+
+  /services:
+    get:
+      summary: List all services (filter by category, search)
+      tags: [Services]
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/ServiceCategory'
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated list of services
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  total:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /services/{id}:
+    get:
+      summary: Get service details
+      tags: [Services]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Service detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /services/{id}/packages:
+    get:
+      summary: Get S/M/L packages for a service
+      tags: [Services]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ServicePackage'
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Providers ────────────────────────────────────────────────────────────────
+
+  /providers/register:
+    post:
+      summary: Register a new provider account
+      tags: [Providers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProviderRegisterRequest'
+      responses:
+        '201':
+          description: Provider registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /providers/me:
+    get:
+      summary: Get current provider profile
+      tags: [Providers]
+      responses:
+        '200':
+          description: Provider profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderSummary'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /providers/me/availability:
+    get:
+      summary: Get provider availability
+      tags: [Providers]
+      responses:
+        '200':
+          description: Availability schedule
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderAvailability'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update provider availability
+      tags: [Providers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAvailabilityRequest'
+      responses:
+        '200':
+          description: Availability updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderAvailability'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /providers/me/documents:
+    post:
+      summary: Upload verification documents
+      tags: [Providers]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - type
+              properties:
+                type:
+                  type: string
+                  example: LICENSE
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Document uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  url:
+                    type: string
+                    format: uri
+                  type:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /providers/inbox:
+    get:
+      summary: Provider's booking inbox
+      tags: [Providers]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ALL, PENDING, CONFIRMED]
+          description: Filter by booking status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated booking inbox
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/BookingInbox'
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  total:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not a provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /providers/{id}/profile:
+    get:
+      summary: Get public provider profile
+      tags: [Providers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Provider profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderSummary'
+        '404':
+          description: Provider not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Provider Matching ────────────────────────────────────────────────────────
+
+  /providers:
+    get:
+      summary: Match providers by service, date, time and address
+      tags: [Providers]
+      parameters:
+        - name: serviceId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: time
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "09:00"
+        - name: addressId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Matched providers sorted by distance/rating
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProviderSummary'
+        '400':
+          description: Missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Booking Slots ───────────────────────────────────────────────────────────
+
+  /booking/slots:
+    get:
+      summary: Get available time slots for a service at an address
+      tags: [Booking]
+      parameters:
+        - name: serviceId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: addressId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Available time slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeSlot'
+        '400':
+          description: Missing required parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Booking CRUD ─────────────────────────────────────────────────────────────
+
+  /booking:
+    post:
+      summary: Create a new booking
+      tags: [Booking]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Slot no longer available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /booking/{id}:
+    get:
+      summary: Get booking details
+      tags: [Booking]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /booking/{id}/cancel:
+    put:
+      summary: Cancel a booking
+      tags: [Booking]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelBookingRequest'
+      responses:
+        '200':
+          description: Booking cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Cannot cancel in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /booking/{id}/accept:
+    put:
+      summary: Provider accepts a booking
+      tags: [Booking]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Booking confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Cannot accept in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /booking/{id}/reject:
+    put:
+      summary: Provider rejects a booking
+      tags: [Booking]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectBookingRequest'
+      responses:
+        '200':
+          description: Booking rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Cannot reject in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /booking/history:
+    get:
+      summary: Paginated booking history
+      tags: [Booking]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/BookingStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated booking history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /booking/upcoming:
+    get:
+      summary: Get active/upcoming bookings
+      tags: [Booking]
+      responses:
+        '200':
+          description: List of upcoming bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Visits ───────────────────────────────────────────────────────────────────
+
+  /visits/{id}:
+    get:
+      summary: Get visit details
+      tags: [Visits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Visit detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+        '404':
+          description: Visit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{id}/start:
+    put:
+      summary: Provider starts visit (GPS location captured)
+      tags: [Visits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Visit started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+        '400':
+          description: Cannot start in current status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Visit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{id}/complete:
+    put:
+      summary: Submit visit form with vitals, notes, and signature
+      tags: [Visits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteVisitRequest'
+      responses:
+        '200':
+          description: Visit completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Visit'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Visit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{id}/escalate:
+    post:
+      summary: Trigger an escalation for a visit
+      tags: [Visits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EscalationRequest'
+      responses:
+        '201':
+          description: Escalation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Escalation'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Visit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{id}/pdf:
+    get:
+      summary: Download visit report PDF
+      tags: [Visits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: PDF binary stream
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Visit or report not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{id}/send-to-patient:
+    post:
+      summary: Send visit report to patient via email
+      tags: [Visits]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Email queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Report email queued
+        '400':
+          description: Visit not completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Visit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /visits/{id}/rating:
+    post:
+      summary: Rate a completed visit
+      tags: [Ratings]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRatingRequest'
+      responses:
+        '201':
+          description: Rating submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  rating:
+                    type: integer
+                  review:
+                    type: string
+        '400':
+          description: Visit not completed or already rated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Visit not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Payments ─────────────────────────────────────────────────────────────────
+
+  /payments/intent:
+    post:
+      summary: Create Stripe payment intent
+      tags: [Payments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentIntentRequest'
+      responses:
+        '201':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntentResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/confirm:
+    post:
+      summary: Confirm payment (Stripe webhook handler)
+      tags: [Payments]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentIntentId:
+                  type: string
+                status:
+                  type: string
+      responses:
+        '200':
+          description: Payment confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Payment failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/history:
+    get:
+      summary: Payment history
+      tags: [Payments]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated payment history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Payment'
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  total:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /payments/refund:
+    post:
+      summary: Request a refund
+      tags: [Payments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequest'
+      responses:
+        '200':
+          description: Refund processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Refund not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Notifications ─────────────────────────────────────────────────────────────
+
+  /notifications/push-token:
+    post:
+      summary: Register device push token
+      tags: [Notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPushTokenRequest'
+      responses:
+        '201':
+          description: Token registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token registered
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications:
+    get:
+      summary: List notifications for current user
+      tags: [Notifications]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Paginated notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+                  total:
+                    type: integer
+                  totalPages:
+                    type: integer
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /notifications/{id}/read:
+    put:
+      summary: Mark notification as read
+      tags: [Notifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+# ─── Tags ─────────────────────────────────────────────────────────────────────
+
+tags:
+  - name: Auth
+    description: Authentication and registration
+  - name: Patients
+    description: Patient profile and address management
+  - name: Services
+    description: Service catalog and packages
+  - name: Providers
+    description: Provider profiles, availability, and inbox
+  - name: Booking
+    description: Booking CRUD, slots, accept/reject
+  - name: Visits
+    description: Visit lifecycle, clinical forms, escalation
+  - name: Payments
+    description: Stripe payments, refunds
+  - name: Notifications
+    description: Push notifications
+  - name: Ratings
+    description: Visit ratings and reviews

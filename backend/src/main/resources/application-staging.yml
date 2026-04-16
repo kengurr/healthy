@@ -1,0 +1,105 @@
+spring:
+  config:
+    activate:
+      on-profile: staging
+
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST:staging-db}:${DATABASE_PORT:5432}/${DATABASE_NAME:zdravdom_staging}
+    username: ${DATABASE_USERNAME:zdravdom}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:staging-redis}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:staging-kafka:9092}
+
+# Staging AWS S3
+aws:
+  s3:
+    endpoint: ${AWS_S3_ENDPOINT:}
+    region: ${AWS_REGION:eu-central-1}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    bucket:
+      documents: ${AWS_S3_BUCKET_DOCUMENTS:zdravdom-documents-staging}
+      reports: ${AWS_S3_BUCKET_REPORTS:zdravdom-reports-staging}
+      media: ${AWS_S3_BUCKET_MEDIA:zdravdom-media-staging}
+
+# JWT Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:}
+    access-token-expiry: 900000        # 15 minutes
+    refresh-token-expiry: 2592000000   # 30 days for staging
+
+# Staging logging
+logging:
+  level:
+    root: INFO
+    com.zdravdom: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Staging server
+server:
+  port: ${APP_PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+
+# Staging actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Staging Resilience4j
+resilience4j:
+  circuitbreaker:
+    instances:
+      stripe:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60000
+        permitted-number-of-calls-in-half-open-state: 3
+      nijz:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30000
+        permitted-number-of-calls-in-half-open-state: 2
+      zzzs:
+        sliding-window-size: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30000
+        permitted-number-of-calls-in-half-open-state: 2
+  retry:
+    instances:
+      default:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
