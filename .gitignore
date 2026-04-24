@@ -38,6 +38,10 @@ backend/mvnw.cmd
 # =============================================================================
 # Node.js / npm / React Native / Expo
 # =============================================================================
+
+# Root workspace node_modules (npm workspaces)
+node_modules/
+
 patient-app/node_modules/
 patient-app/.expo/
 patient-app/dist/
