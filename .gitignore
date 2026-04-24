@@ -39,10 +39,15 @@ backend/mvnw.cmd
 # Node.js / npm / React Native / Expo
 # =============================================================================
 
-# Root workspace node_modules (npm workspaces)
+# Root workspace
+package-lock.json
+admin-portal/package-lock.json
 node_modules/
 
-patient-app/node_modules/
+# Shared packages
+shared/node_modules/
+shared/package-lock.json
+
 patient-app/.expo/
 patient-app/dist/
 patient-app/web-build/
@@ -59,12 +64,6 @@ provider-app/package-lock.json
 provider-app/npm-debug.log*
 provider-app/yarn-debug.log*
 provider-app/yarn-error.log*
-
-shared/node_modules/
-shared/package-lock.json
-shared/npm-debug.log*
-shared/yarn-debug.log*
-shared/yarn-error.log*
 
 .expo/
 expo-env.d.ts
