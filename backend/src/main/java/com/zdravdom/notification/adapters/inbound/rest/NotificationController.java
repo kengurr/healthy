@@ -33,7 +33,7 @@ public class NotificationController {
     public ResponseEntity<MessageResponse> registerPushToken(
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
             @Valid @RequestBody RegisterPushTokenRequest request) {
-        notificationService.registerPushToken(principal.userId(), request.token(), request.platform());
+        notificationService.registerPushToken(principal.userId(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new MessageResponse("Token registered"));
     }

@@ -1,6 +1,8 @@
 package com.zdravdom.booking.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.DynamicUpdate;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,14 +10,25 @@ import java.time.LocalDateTime;
 /**
  * Booking entity representing a scheduled home healthcare visit.
  * Maps to booking.bookings table.
+ *
+ * PRODUCTION: Missing soft-delete — booking records require 10-year retention (health data).
+ *             Use active flag or deleted_at; anonymize patient/provider data on deletion.
+ * PRODUCTION: Missing composite index on (patient_id, date) — used in "upcoming bookings" query.
+ * PRODUCTION: Missing composite index on (provider_id, date) — used in provider inbox query.
+ * PRODUCTION: Missing index on idempotency_key — already has unique constraint, verify index exists.
+ * PRODUCTION: Missing index on status — used for filtering.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "bookings", schema = "booking")
 public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(name = "patient_id", nullable = false)
     private Long patientId;
@@ -132,6 +145,7 @@ public class Booking {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public String getIdempotencyKey() { return idempotencyKey; }
+    public Long getVersion() { return version; }
 
     // Setters
     public void setId(Long id) { this.id = id; }
@@ -149,4 +163,5 @@ public class Booking {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+    public void setVersion(Long version) { this.version = version; }
 }

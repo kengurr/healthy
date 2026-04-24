@@ -41,6 +41,7 @@ public class PaymentController {
 
     @PostMapping("/confirm")
     @Operation(summary = "Confirm payment (Stripe webhook handler)")
+    // PRODUCTION: Must verify Stripe webhook signature (stripe-signature header) — otherwise anyone can fake a payment confirmation
     public ResponseEntity<PaymentResponse> confirmPayment(@RequestBody ConfirmPaymentRequest request) {
         PaymentResponse response = paymentService.confirmPayment(
             request.paymentIntentId(), request.status());

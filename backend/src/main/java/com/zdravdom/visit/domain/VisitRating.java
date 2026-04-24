@@ -1,14 +1,25 @@
 package com.zdravdom.visit.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 /**
  * Visit rating submitted by a patient after a completed visit.
  * Maps to visit.visit_ratings table.
+ *
+ * PRODUCTION: review column is plain TEXT — no PII encryption currently (contains patient-written text).
+ *             If reviews may contain health info, encrypt at rest.
  */
 @Entity
 @Table(name = "visit_ratings", schema = "visit")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class VisitRating {
 
     @Id
@@ -33,28 +44,13 @@ public class VisitRating {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public VisitRating() {}
-
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public Long getVisitId() { return visitId; }
-    public Long getPatientId() { return patientId; }
-    public Long getProviderId() { return providerId; }
-    public Integer getRating() { return rating; }
-    public String getReview() { return review; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setVisitId(Long visitId) { this.visitId = visitId; }
-    public void setPatientId(Long patientId) { this.patientId = patientId; }
-    public void setProviderId(Long providerId) { this.providerId = providerId; }
-    public void setRating(Integer rating) { this.rating = rating; }
-    public void setReview(String review) { this.review = review; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    /** Factory method for application-layer instantiation. */
+    public static VisitRating create() {
+        return new VisitRating();
+    }
 }

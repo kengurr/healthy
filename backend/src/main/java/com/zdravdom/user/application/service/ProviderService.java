@@ -142,6 +142,7 @@ public class ProviderService {
         // TODO (Production): Replace hardcoded S3 domain with configurable cloudfront-distribution domain:
         //   s3Key is the safe reference — construct URL from ${app.document.base-url} property
         //   (supports CloudFront CDN, MinIO for local dev, or any S3-compatible endpoint)
+        // DEVELOPMENT: Stub returns hardcoded URL and id=0L — production needs real S3 + ProviderDocument entity (see TODOs above)
         String documentUrl = "https://s3.amazonaws.com/zdravdom-documents/" + s3Key;
         return new DocumentUploadResponse(0L, documentUrl, documentType, "PENDING_REVIEW");
     }

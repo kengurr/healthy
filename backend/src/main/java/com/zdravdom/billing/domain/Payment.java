@@ -4,6 +4,11 @@ import com.zdravdom.booking.domain.Booking;
 import com.zdravdom.user.domain.Patient;
 import com.zdravdom.user.domain.Provider;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -11,9 +16,17 @@ import java.time.LocalDateTime;
 /**
  * Payment entity for billing. Maps to billing.invoices table.
  * Note: Originally named Payment but DB schema uses 'invoices'.
+ *
+ * PRODUCTION: Missing soft-delete — billing records require 10-year retention for tax/legal compliance.
+ * PRODUCTION: Missing index on patient_id — used in payment history queries.
+ * PRODUCTION: Missing index on stripe_payment_intent_id — used in webhook confirmation lookups.
+ * PRODUCTION: Missing index on invoice_number — already unique but verify index exists.
  */
 @Entity
 @Table(name = "invoices", schema = "billing")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Payment {
 
     @Id
@@ -64,9 +77,6 @@ public class Payment {
         PENDING, PAID, REFUNDED, FAILED, CANCELLED
     }
 
-    // Default constructor for JPA
-    public Payment() {}
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -92,33 +102,8 @@ public class Payment {
         this.status = PaymentStatus.FAILED;
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public Booking getBooking() { return booking; }
-    public Patient getPatient() { return patient; }
-    public Provider getProvider() { return provider; }
-    public String getInvoiceNumber() { return invoiceNumber; }
-    public BigDecimal getAmount() { return amount; }
-    public BigDecimal getTaxAmount() { return taxAmount; }
-    public PaymentStatus getStatus() { return status; }
-    public LocalDate getDueDate() { return dueDate; }
-    public LocalDateTime getPaidAt() { return paidAt; }
-    public String getStripePaymentIntentId() { return stripePaymentIntentId; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setBooking(Booking booking) { this.booking = booking; }
-    public void setPatient(Patient patient) { this.patient = patient; }
-    public void setProvider(Provider provider) { this.provider = provider; }
-    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
-    public void setAmount(BigDecimal amount) { this.amount = amount; }
-    public void setTaxAmount(BigDecimal taxAmount) { this.taxAmount = taxAmount; }
-    public void setStatus(PaymentStatus status) { this.status = status; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
-    public void setPaidAt(LocalDateTime paidAt) { this.paidAt = paidAt; }
-    public void setStripePaymentIntentId(String stripePaymentIntentId) { this.stripePaymentIntentId = stripePaymentIntentId; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    /** Factory method for application-layer instantiation. */
+    public static Payment create() {
+        return new Payment();
+    }
 }

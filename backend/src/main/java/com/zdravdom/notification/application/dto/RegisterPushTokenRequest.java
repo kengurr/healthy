@@ -1,6 +1,6 @@
 package com.zdravdom.notification.application.dto;
 
-import com.zdravdom.notification.domain.Platform;
+import com.zdravdom.notification.domain.PushToken;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -9,5 +9,5 @@ import jakarta.validation.constraints.NotNull;
  */
 public record RegisterPushTokenRequest(
     @NotBlank String token,
-    @NotNull Platform platform
+    @NotNull PushToken.Platform platform
 ) {}

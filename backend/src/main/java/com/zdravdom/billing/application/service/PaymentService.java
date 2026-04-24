@@ -51,7 +51,7 @@ public class PaymentService {
         BigDecimal actualAmount = resolveAmountFromBooking(bookingId, amount);
 
         StripeGateway.PaymentIntent intent = stripeGateway.createPaymentIntent(
-            bookingId, actualAmount, "eur", allowedNetworks);
+            bookingId, actualAmount, "eur", allowedNetworks); // PRODUCTION: Currency "eur" must come from service/booking config or patient locale, not hardcoded
 
         return new PaymentIntentResponse(intent.clientSecret(), intent.id());
     }

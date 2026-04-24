@@ -171,7 +171,7 @@ public class VisitPdfService {
 
     private float drawMultiline(PDPageContentStream cs, float x, float y,
                                 float leading, String text) throws IOException {
-        // Simple single-line for now (PDFBox text wrapping is complex)
+        // PRODUCTION: Text truncation at 80 chars without word-wrap produces ugly PDFs — use PDFTextStripWriter for proper multi-line text wrapping
         cs.beginText();
         cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
         cs.newLineAtOffset(x, y);

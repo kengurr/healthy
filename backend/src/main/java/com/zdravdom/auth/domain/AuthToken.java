@@ -1,6 +1,11 @@
 package com.zdravdom.auth.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.Instant;
 
 /**
@@ -9,6 +14,9 @@ import java.time.Instant;
  */
 @Entity
 @Table(name = "auth_tokens", schema = "auth")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AuthToken {
 
     @Id
@@ -37,9 +45,6 @@ public class AuthToken {
     @Column(nullable = false)
     private boolean revoked = false;
 
-    // Default constructor for JPA
-    public AuthToken() {}
-
     public AuthToken(User user, String refreshToken, String deviceInfo,
                      String ipAddress, Instant expiresAt) {
         this.user = user;
@@ -67,24 +72,4 @@ public class AuthToken {
     public void revoke() {
         this.revoked = true;
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public User getUser() { return user; }
-    public String getRefreshToken() { return refreshToken; }
-    public String getDeviceInfo() { return deviceInfo; }
-    public String getIpAddress() { return ipAddress; }
-    public Instant getIssuedAt() { return issuedAt; }
-    public Instant getExpiresAt() { return expiresAt; }
-    public boolean isRevoked() { return revoked; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setUser(User user) { this.user = user; }
-    public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
-    public void setDeviceInfo(String deviceInfo) { this.deviceInfo = deviceInfo; }
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
-    public void setIssuedAt(Instant issuedAt) { this.issuedAt = issuedAt; }
-    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
-    public void setRevoked(boolean revoked) { this.revoked = revoked; }
 }

@@ -1,15 +1,28 @@
 package com.zdravdom.visit.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
  * Vital signs recorded during a visit.
  * Maps to visit.vitals table.
+ *
+ * PRODUCTION: Missing soft-delete — vitals are health data, 10-year retention required.
+ *             No active flag currently — add deleted_at column for GDPR compliance.
+ * PRODUCTION: Missing index on visit_id — used in getVisitPdf() and completeVisit() queries.
+ * PRODUCTION: Missing index on recorded_at — used in time-range queries for analytics.
  */
 @Entity
 @Table(name = "vitals", schema = "visit")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Vitals {
 
     @Id
@@ -46,12 +59,14 @@ public class Vitals {
     @Column(name = "recorded_at")
     private LocalDateTime recordedAt;
 
-    // Default constructor for JPA
-    public Vitals() {}
-
     @PrePersist
     protected void onCreate() {
         if (recordedAt == null) recordedAt = LocalDateTime.now();
+    }
+
+    /** Factory method for application-layer instantiation. */
+    public static Vitals create() {
+        return new Vitals();
     }
 
     @Transient
@@ -61,30 +76,4 @@ public class Vitals {
         if (temperature != null && (temperature.compareTo(BigDecimal.valueOf(35.0)) < 0 || temperature.compareTo(BigDecimal.valueOf(39.5)) > 0)) return true;
         return false;
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public Long getVisitId() { return visitId; }
-    public String getBloodPressure() { return bloodPressure; }
-    public Integer getHeartRate() { return heartRate; }
-    public BigDecimal getTemperature() { return temperature; }
-    public Integer getO2Saturation() { return o2Saturation; }
-    public Integer getRespiratoryRate() { return respiratoryRate; }
-    public BigDecimal getBloodGlucose() { return bloodGlucose; }
-    public BigDecimal getWeight() { return weight; }
-    public String getNotes() { return notes; }
-    public LocalDateTime getRecordedAt() { return recordedAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setVisitId(Long visitId) { this.visitId = visitId; }
-    public void setBloodPressure(String bloodPressure) { this.bloodPressure = bloodPressure; }
-    public void setHeartRate(Integer heartRate) { this.heartRate = heartRate; }
-    public void setTemperature(BigDecimal temperature) { this.temperature = temperature; }
-    public void setO2Saturation(Integer o2Saturation) { this.o2Saturation = o2Saturation; }
-    public void setRespiratoryRate(Integer respiratoryRate) { this.respiratoryRate = respiratoryRate; }
-    public void setBloodGlucose(BigDecimal bloodGlucose) { this.bloodGlucose = bloodGlucose; }
-    public void setWeight(BigDecimal weight) { this.weight = weight; }
-    public void setNotes(String notes) { this.notes = notes; }
-    public void setRecordedAt(LocalDateTime recordedAt) { this.recordedAt = recordedAt; }
 }

@@ -1,6 +1,11 @@
 package com.zdravdom.notification.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 /**
@@ -9,6 +14,9 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "push_tokens", schema = "notification")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PushToken {
 
     @Id
@@ -38,9 +46,6 @@ public class PushToken {
         ANDROID, IOS, WEB
     }
 
-    // Default constructor for JPA
-    public PushToken() {}
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -56,21 +61,8 @@ public class PushToken {
         this.active = false;
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getToken() { return token; }
-    public Platform getPlatform() { return platform; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public boolean isActive() { return active; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setUserId(Long userId) { this.userId = userId; }
-    public void setToken(String token) { this.token = token; }
-    public void setPlatform(Platform platform) { this.platform = platform; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
-    public void setActive(boolean active) { this.active = active; }
+    /** Factory method for application-layer and test instantiation. */
+    public static PushToken create() {
+        return new PushToken();
+    }
 }

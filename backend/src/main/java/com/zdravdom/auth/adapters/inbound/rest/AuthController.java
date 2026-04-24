@@ -1,8 +1,11 @@
 package com.zdravdom.auth.adapters.inbound.rest;
 
+import com.zdravdom.auth.adapters.inbound.dto.LoginRequest;
+import com.zdravdom.auth.adapters.inbound.dto.ProviderRegisterRequest;
+import com.zdravdom.auth.adapters.inbound.dto.RefreshRequest;
+import com.zdravdom.auth.adapters.inbound.dto.RegisterRequest;
 import com.zdravdom.auth.application.service.AuthService;
-import com.zdravdom.auth.application.service.AuthService.*;
-import com.zdravdom.auth.domain.Role;
+import com.zdravdom.auth.application.service.AuthService.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * REST controller for authentication endpoints.
+ * All endpoints are public — no authentication required.
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -31,6 +35,13 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/provider/register")
+    @Operation(summary = "Register a new provider account")
+    public ResponseEntity<AuthResponse> registerProvider(@Valid @RequestBody ProviderRegisterRequest request) {
+        AuthResponse response = authService.registerProvider(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @PostMapping("/login")
     @Operation(summary = "Login with email and password")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
@@ -43,12 +54,5 @@ public class AuthController {
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
         AuthResponse response = authService.refresh(request);
         return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/provider/register")
-    @Operation(summary = "Register a new provider account")
-    public ResponseEntity<AuthResponse> registerProvider(@Valid @RequestBody ProviderRegisterRequest request) {
-        AuthResponse response = authService.registerProvider(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

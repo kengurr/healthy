@@ -6,7 +6,10 @@
 # Local-only folders (never commit)
 # =============================================================================
 .claude/
-design/
+
+# Expo (global)
+.expo/
+expo-env.d.ts
 
 # =============================================================================
 # Java / Maven
@@ -53,21 +56,12 @@ provider-app/npm-debug.log*
 provider-app/yarn-debug.log*
 provider-app/yarn-error.log*
 
-admin-portal/node_modules/
-admin-portal/dist/
-admin-portal/build/
-admin-portal/package-lock.json
-admin-portal/npm-debug.log*
-admin-portal/yarn-debug.log*
-admin-portal/yarn-error.log*
-
 shared/node_modules/
 shared/package-lock.json
 shared/npm-debug.log*
 shared/yarn-debug.log*
 shared/yarn-error.log*
 
-# Expo (global)
 .expo/
 expo-env.d.ts
 

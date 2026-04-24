@@ -3,13 +3,21 @@ package com.zdravdom.user.domain;
 import com.zdravdom.auth.domain.Role;
 import com.zdravdom.auth.domain.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.DynamicUpdate;
 import java.time.LocalDateTime;
 
 /**
  * Healthcare provider profile information.
  * Maps to user.providers table.
+ *
+ * PRODUCTION: Missing soft-delete — provider health records require retention.
+ *             Implement active flag + anonymization on soft-delete.
+ * PRODUCTION: Missing index on user_id.
+ * PRODUCTION: Missing index on email — used for login lookups.
+ * PRODUCTION: bio and photo_url may contain PII — consider encryption at rest.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "providers", schema = "`user`")
 public class Provider {
 
@@ -71,6 +79,9 @@ public class Provider {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
 
     public enum Profession {
         NURSE, PHYSIOTHERAPIST, DOCTOR, CAREGIVER, SOCIAL_WORKER
@@ -155,6 +166,7 @@ public class Provider {
     public boolean isVerified() { return verified; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public Long getVersion() { return version; }
 
     // Setters
     public void setId(Long id) { this.id = id; }

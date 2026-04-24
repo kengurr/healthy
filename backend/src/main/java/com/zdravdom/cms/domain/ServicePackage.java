@@ -1,6 +1,11 @@
 package com.zdravdom.cms.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -10,6 +15,9 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "service_packages", schema = "cms")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ServicePackage {
 
     @Id
@@ -54,9 +62,6 @@ public class ServicePackage {
         S, M, L
     }
 
-    // Default constructor for JPA
-    public ServicePackage() {}
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -83,32 +88,4 @@ public class ServicePackage {
     public int getVisitCount() {
         return size == PackageSize.S ? 3 : size == PackageSize.M ? 8 : 12;
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public String getName() { return name; }
-    public PackageSize getSize() { return size; }
-    public String getDescription() { return description; }
-    public Long[] getServiceIds() { return serviceIds; }
-    public BigDecimal getPrice() { return price; }
-    public BigDecimal getDiscountPercent() { return discountPercent; }
-    public Integer getValidityDays() { return validityDays; }
-    public String[] getBenefits() { return benefits; }
-    public boolean isActive() { return active; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setName(String name) { this.name = name; }
-    public void setSize(PackageSize size) { this.size = size; }
-    public void setDescription(String description) { this.description = description; }
-    public void setServiceIds(Long[] serviceIds) { this.serviceIds = serviceIds; }
-    public void setPrice(BigDecimal price) { this.price = price; }
-    public void setDiscountPercent(BigDecimal discountPercent) { this.discountPercent = discountPercent; }
-    public void setValidityDays(Integer validityDays) { this.validityDays = validityDays; }
-    public void setBenefits(String[] benefits) { this.benefits = benefits; }
-    public void setActive(boolean active) { this.active = active; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
