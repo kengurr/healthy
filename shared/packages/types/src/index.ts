@@ -390,3 +390,125 @@ export interface ApiErrorResponse {
   message: string;
   path: string;
 }
+
+// ─── Admin ─────────────────────────────────────────────────────────────────────
+
+export type ProviderProfession = 'NURSE' | 'PHYSIOTHERAPIST' | 'DOCTOR' | 'CAREGIVER' | 'SOCIAL_WORKER';
+export type ProviderSpecialty =
+  | 'GENERAL_CARE' | 'WOUND_CARE' | 'POST_SURGERY_CARE' | 'ELDERLY_CARE'
+  | 'PEDIATRIC_CARE' | 'CHRONIC_DISEASE_MANAGEMENT' | 'REHABILITATION'
+  | 'PALLIATIVE_CARE' | 'MENTAL_HEALTH';
+export type ProviderLanguage =
+  | 'SLOVENIAN' | 'ENGLISH' | 'GERMAN' | 'ITALIAN' | 'CROATIAN' | 'SERBIAN' | 'BOSNIAN' | 'HUNGARIAN';
+export type EscalationStatus = 'OPEN' | 'IN_REVIEW' | 'RESOLVED' | 'ESCALATED_TO_EMERGENCY_SERVICES';
+export type PackageSize = 'S' | 'M' | 'L';
+
+export interface AdminDashboardResponse {
+  totalPatients: number;
+  totalProviders: number;
+  activeProviders: number;
+  totalBookings: number;
+  activeBookings: number;
+  bookingsToday: number;
+  bookingsThisWeek: number;
+  revenueToday: number;
+  revenueThisWeek: number;
+  revenueThisMonth: number;
+  pendingVerifications: number;
+  openEscalations: number;
+  generatedAt: string;
+}
+
+export interface ProviderVerificationItem {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profession: ProviderProfession;
+  specialty: ProviderSpecialty;
+  status: ProviderStatus;
+  documentUrls: string[];
+  createdAt: string;
+}
+
+export interface StatusTimelineEntry {
+  status: BookingStatus;
+  timestamp: string;
+  note?: string;
+}
+
+export interface AdminBookingResponse {
+  id: number;
+  patientId: number;
+  providerId: number;
+  serviceId: number;
+  addressId: number;
+  date: string;
+  timeSlot: string;
+  status: BookingStatus;
+  paymentStatus: PaymentStatus;
+  paymentAmount: number;
+  cancellationReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  timeline: StatusTimelineEntry[];
+}
+
+export interface CreateServiceRequest {
+  name: string;
+  category: string;
+  description: string;
+  durationMinutes: number;
+  price: number;
+  imageUrl?: string;
+  includedItems: string[];
+  requiredDocuments: string[];
+}
+
+export interface UpdateServiceRequest {
+  name?: string;
+  category?: string;
+  description?: string;
+  durationMinutes?: number;
+  price?: number;
+  imageUrl?: string;
+  includedItems?: string[];
+  requiredDocuments?: string[];
+  active?: boolean;
+}
+
+export interface CreatePackageRequest {
+  name: string;
+  size: PackageSize;
+  description: string;
+  serviceIds: number[];
+  price: number;
+  discountPercent: number;
+  validityDays: number;
+  benefits: string[];
+}
+
+export interface UpdateEscalationStatusRequest {
+  status: EscalationStatus;
+  resolution?: string;
+  actionTaken?: string;
+}
+
+export interface AdminEscalationResponse {
+  id: number;
+  visitId: number;
+  providerId: number;
+  providerName: string | null;
+  patientId: number;
+  patientName: string | null;
+  urgencyType: UrgencyType;
+  status: EscalationStatus;
+  description: string;
+  actionTaken: string | null;
+  resolution: string | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  gpsLat: number | null;
+  gpsLng: number | null;
+  notifiedUsers: string[];
+}

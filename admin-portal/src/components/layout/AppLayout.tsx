@@ -7,6 +7,7 @@ const navItems = [
   { to: '/providers', label: 'Providers' },
   { to: '/bookings', label: 'Bookings' },
   { to: '/services', label: 'Services' },
+  { to: '/escalations', label: 'Escalations' },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
