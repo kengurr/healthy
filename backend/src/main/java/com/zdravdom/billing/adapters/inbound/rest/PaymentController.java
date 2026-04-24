@@ -35,7 +35,7 @@ public class PaymentController {
             @Valid @RequestBody CreatePaymentIntentRequest request) {
         // In production, get amount from booking
         PaymentIntentResponse response = paymentService.createPaymentIntent(
-            request.bookingId(), BigDecimal.valueOf(45.00));
+            request.bookingId(), null);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
