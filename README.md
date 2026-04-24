@@ -29,12 +29,6 @@ Home healthcare platform connecting patients and families with verified healthca
 | Admin Portal | React (Vite) | Browser-only operations dashboard |
 | Shared | TypeScript | API client, types, hooks, constants |
 
-**Commercial Context:**
-- Main contract: EUR 160,000 (Phases 0–3, ~9 months)
-- Team: 4 developers
-
----
-
 ## Architecture
 
 ### Backend: Modular Monolith (DDD)
