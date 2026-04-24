@@ -1,5 +1,5 @@
 -- Dev seed data for provider locations (Ljubljana area)
--- Run after V6__matching_schema.sql (and V6.1 which replaces geography with lat/lng columns)
+-- Uses plain lat/lng columns (no PostGIS required)
 
 -- Insert provider locations only if providers exist
 INSERT INTO matching.provider_locations (provider_id, address_id, latitude, longitude, service_radius_km, is_primary)
