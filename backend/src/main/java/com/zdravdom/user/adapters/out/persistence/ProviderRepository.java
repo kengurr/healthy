@@ -19,4 +19,8 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
     boolean existsByEmail(String email);
 
     java.util.List<Provider> findByStatus(Provider.ProviderStatus status);
+
+    // TODO (Production): If providers are assigned a UUID externally (e.g., from a third-party
+    // provider directory or HR system), add a 'uuid' column to the providers table and uncomment:
+    // Optional<Provider> findByUuid(java.util.UUID uuid);
 }

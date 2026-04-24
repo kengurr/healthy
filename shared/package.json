@@ -1,0 +1,11 @@
+{
+  "name": "@zdravdom/shared",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "build --workspaces": "echo 'building shared packages'"
+  }
+}

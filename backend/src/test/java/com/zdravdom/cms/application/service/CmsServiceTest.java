@@ -106,11 +106,11 @@ class CmsServiceTest {
     class GetServiceById {
 
         @Test
-        @DisplayName("returns service by UUID via most significant bits")
+        @DisplayName("returns service by UUID")
         void returnsServiceByUuid() {
             UUID uuid = UUID.randomUUID();
             Service service = createService(1L, "Nursing", Service.ServiceCategory.NURSING_CARE);
-            when(serviceRepository.findById(anyLong())).thenReturn(Optional.of(service));
+            when(serviceRepository.findByUuid(uuid)).thenReturn(Optional.of(service));
 
             ServiceResponse response = cmsService.getServiceById(uuid);
 
@@ -120,7 +120,7 @@ class CmsServiceTest {
         @Test
         @DisplayName("throws when service not found")
         void throwsWhenNotFound() {
-            when(serviceRepository.findById(any())).thenReturn(Optional.empty());
+            when(serviceRepository.findByUuid(any(UUID.class))).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> cmsService.getServiceById(UUID.randomUUID()))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -136,6 +136,10 @@ class CmsServiceTest {
         @Test
         @DisplayName("returns packages for a service")
         void returnsPackagesForService() {
+            UUID serviceUuid = UUID.randomUUID();
+            Service service = createService(1L, "Nursing", Service.ServiceCategory.NURSING_CARE);
+            when(serviceRepository.findByUuid(serviceUuid)).thenReturn(Optional.of(service));
+
             ServicePackage pkg = TestReflectionUtil.newInstance(ServicePackage.class);
             setId(pkg, 1L);
             pkg.setName("Monthly Package");
@@ -145,9 +149,9 @@ class CmsServiceTest {
             pkg.setValidityDays(30);
             pkg.setSize(ServicePackage.PackageSize.M);
 
-            when(packageRepository.findByServiceId(anyLong())).thenReturn(List.of(pkg));
+            when(packageRepository.findByServiceId(1L)).thenReturn(List.of(pkg));
 
-            List<PackageResponse> packages = cmsService.getServicePackages(UUID.randomUUID());
+            List<PackageResponse> packages = cmsService.getServicePackages(serviceUuid);
 
             assertThat(packages).hasSize(1);
             assertThat(packages.get(0).name()).isEqualTo("Monthly Package");

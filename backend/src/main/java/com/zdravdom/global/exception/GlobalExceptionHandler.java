@@ -1,5 +1,9 @@
 package com.zdravdom.global.exception;
 
+import com.stripe.exception.CardException;
+import com.stripe.exception.RateLimitException;
+import com.stripe.exception.StripeException;
+import com.zdravdom.billing.adapters.out.stripe.StripeGatewayException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -142,6 +146,97 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    // ─── Stripe / Payment exceptions ──────────────────────────────────────────
+
+    /**
+     * CardException: card declined, insufficient funds, expired, etc.
+     * Stripe returns HTTP 402 (Payment Required) for card failures.
+     */
+    @ExceptionHandler(CardException.class)
+    public ResponseEntity<ErrorResponse> handleCardException(CardException ex, WebRequest request) {
+        log.warn("Card payment failed: {} (decline code: {})", ex.getMessage(), ex.getDeclineCode());
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.PAYMENT_REQUIRED.value(),
+            "CARD_DECLINED",
+            ex.getMessage(),
+            request.getDescription(false),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(error);
+    }
+
+    /**
+     * RateLimitException: too many Stripe API requests.
+     * Stripe returns HTTP 429.
+     */
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitException(RateLimitException ex, WebRequest request) {
+        log.warn("Stripe rate limit exceeded: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.TOO_MANY_REQUESTS.value(),
+            "RATE_LIMITED",
+            "Payment service temporarily unavailable — please retry",
+            request.getDescription(false),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(error);
+    }
+
+    /**
+     * Generic StripeException — covers AuthenticationException, InvalidRequestException,
+     * PermissionException, ApiConnectionException, etc.
+     * Maps to HTTP 502 Bad Gateway since Stripe is an external dependency.
+     */
+    @ExceptionHandler(StripeException.class)
+    public ResponseEntity<ErrorResponse> handleStripeException(StripeException ex, WebRequest request) {
+        log.error("Stripe API error: {} (code: {})", ex.getMessage(), ex.getStripeError() != null ? ex.getStripeError().getCode() : "n/a");
+        ErrorResponse error = new ErrorResponse(
+            HttpStatus.BAD_GATEWAY.value(),
+            "PAYMENT_SERVICE_ERROR",
+            "Payment service temporarily unavailable — please contact support if persists",
+            request.getDescription(false),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
+
+    /**
+     * Application-level payment failures (e.g., StripeGatewayException from billing layer).
+     * Use this for known business-rule payment failures that should return 400/409.
+     */
+    @ExceptionHandler(StripeGatewayException.class)
+    public ResponseEntity<ErrorResponse> handleStripeGatewayException(StripeGatewayException ex, WebRequest request) {
+        log.error("Stripe gateway error: {}", ex.getMessage(), ex);
+        HttpStatus status = HttpStatus.BAD_GATEWAY;
+        String errorCode = "PAYMENT_GATEWAY_ERROR";
+        // If the cause is a CardException, surface as 402
+        if (ex.getCause() instanceof CardException cardEx) {
+            return handleCardException(cardEx, request);
+        }
+        ErrorResponse error = new ErrorResponse(
+            status.value(), errorCode,
+            "Payment could not be processed — please try again or contact support",
+            request.getDescription(false),
+            Instant.now()
+        );
+        return ResponseEntity.status(status).body(error);
+    }
+
+    @ExceptionHandler(PaymentException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentException(PaymentException ex, WebRequest request) {
+        log.warn("Payment error: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(
+            ex.getStatus().value(),
+            ex.getErrorCode(),
+            ex.getMessage(),
+            request.getDescription(false),
+            Instant.now()
+        );
+        return ResponseEntity.status(ex.getStatus()).body(error);
+    }
+
+    // ─── Catch-all ─────────────────────────────────────────────────────────────
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllUncaughtException(
             Exception ex, WebRequest request) {
@@ -203,5 +298,24 @@ public class GlobalExceptionHandler {
         public ConflictException(String message) {
             super(message);
         }
+    }
+
+    /**
+     * Application-level payment failure with explicit HTTP status and error code.
+     * Use for business-rule payment failures (e.g., booking already refunded,
+     * amount mismatch, currency not supported).
+     */
+    public static class PaymentException extends RuntimeException {
+        private final HttpStatus status;
+        private final String errorCode;
+
+        public PaymentException(HttpStatus status, String errorCode, String message) {
+            super(message);
+            this.status = status;
+            this.errorCode = errorCode;
+        }
+
+        public HttpStatus getStatus() { return status; }
+        public String getErrorCode() { return errorCode; }
     }
 }
