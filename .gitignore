@@ -76,7 +76,8 @@ expo-env.d.ts
 # =============================================================================
 # Python
 # =============================================================================
-design/__pycache__/
+# Docs / Design (keep locally, don't commit)
+design/
 design/*.py[cod]
 design/*.egg-info/
 design/dist/
