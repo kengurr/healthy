@@ -1,6 +1,7 @@
 package com.zdravdom.billing.adapters.out.stripe;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Stripe gateway interface — abstracts Stripe SDK behind a testable boundary.
@@ -11,12 +12,21 @@ public interface StripeGateway {
     /**
      * Create a Stripe PaymentIntent for a booking.
      *
-     * @param bookingId internal booking ID (used as idempotency key prefix)
-     * @param amount   payment amount
-     * @param currency three-letter ISO currency code (e.g. "EUR")
+     * @param bookingId      internal booking ID (used as idempotency key prefix)
+     * @param amount         payment amount
+     * @param currency      three-letter ISO currency code (e.g. "EUR")
+     * @param allowedNetworks card networks to accept (null = Stripe default: Visa, MC, Amex)
      * @return created payment intent with id, client secret, and status
      */
-    PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency);
+    PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency,
+        List<String> allowedNetworks);
+
+    /**
+     * Overload for backward compatibility — accepts all card networks.
+     */
+    default PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency) {
+        return createPaymentIntent(bookingId, amount, currency, null);
+    }
 
     /**
      * Create a Stripe refund for an existing payment intent.

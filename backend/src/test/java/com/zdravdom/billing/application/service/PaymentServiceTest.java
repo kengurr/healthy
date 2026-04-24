@@ -56,26 +56,41 @@ class PaymentServiceTest {
             when(booking.getPaymentAmount()).thenReturn(BigDecimal.valueOf(85.00));
             when(bookingRepository.findById(10L)).thenReturn(Optional.of(booking));
 
-            when(stripeGateway.createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(85.00)), eq("eur")))
+            when(stripeGateway.createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(85.00)), eq("eur"), any()))
                 .thenReturn(new StripeGateway.PaymentIntent("pi_123", "cs_123", "requires_payment_method"));
 
-            var response = paymentService.createPaymentIntent(10L, null);
+            var response = paymentService.createPaymentIntent(10L, null, null);
 
             assertThat(response.paymentIntentId()).isEqualTo("pi_123");
             assertThat(response.clientSecret()).isEqualTo("cs_123");
-            verify(stripeGateway).createPaymentIntent(10L, BigDecimal.valueOf(85.00), "eur");
+            verify(stripeGateway).createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(85.00)), eq("eur"), any());
         }
 
         @Test
         @DisplayName("uses explicitly provided amount when given")
         void usesProvidedAmountWhenGiven() {
-            when(stripeGateway.createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(50.00)), eq("eur")))
+            when(stripeGateway.createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(50.00)), eq("eur"), any()))
                 .thenReturn(new StripeGateway.PaymentIntent("pi_456", "cs_456", "requires_payment_method"));
 
-            var response = paymentService.createPaymentIntent(10L, BigDecimal.valueOf(50.00));
+            var response = paymentService.createPaymentIntent(10L, BigDecimal.valueOf(50.00), null);
 
             assertThat(response.paymentIntentId()).isEqualTo("pi_456");
             verify(bookingRepository, never()).findById(any());
+        }
+
+        @Test
+        @DisplayName("passes allowed networks to Stripe gateway when specified")
+        void passesAllowedNetworksToGateway() {
+            when(stripeGateway.createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(85.00)), eq("eur"),
+                    eq(List.of("visa", "mastercard"))))
+                .thenReturn(new StripeGateway.PaymentIntent("pi_789", "cs_789", "requires_payment_method"));
+
+            var response = paymentService.createPaymentIntent(10L, BigDecimal.valueOf(85.00),
+                List.of("visa", "mastercard"));
+
+            assertThat(response.paymentIntentId()).isEqualTo("pi_789");
+            verify(stripeGateway).createPaymentIntent(eq(10L), eq(BigDecimal.valueOf(85.00)), eq("eur"),
+                eq(List.of("visa", "mastercard")));
         }
 
         @Test
@@ -83,7 +98,7 @@ class PaymentServiceTest {
         void throwsWhenBookingNotFoundAndNoAmount() {
             when(bookingRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> paymentService.createPaymentIntent(999L, null))
+            assertThatThrownBy(() -> paymentService.createPaymentIntent(999L, null, null))
                 .isInstanceOf(ResourceNotFoundException.class);
         }
     }

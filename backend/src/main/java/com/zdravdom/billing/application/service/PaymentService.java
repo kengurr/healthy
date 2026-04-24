@@ -42,14 +42,16 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentIntentResponse createPaymentIntent(Long bookingId, BigDecimal amount) {
-        log.info("Creating payment intent for booking: {}, amount: {}", bookingId, amount);
+    public PaymentIntentResponse createPaymentIntent(Long bookingId, BigDecimal amount,
+        List<String> allowedNetworks) {
+        log.info("Creating payment intent for booking: {}, amount: {}, networks: {}",
+            bookingId, amount, allowedNetworks);
 
         // Resolve real amount from booking if not explicitly provided
         BigDecimal actualAmount = resolveAmountFromBooking(bookingId, amount);
 
         StripeGateway.PaymentIntent intent = stripeGateway.createPaymentIntent(
-            bookingId, actualAmount, "eur");
+            bookingId, actualAmount, "eur", allowedNetworks);
 
         return new PaymentIntentResponse(intent.clientSecret(), intent.id());
     }

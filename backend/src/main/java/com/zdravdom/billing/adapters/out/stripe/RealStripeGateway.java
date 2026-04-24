@@ -1,5 +1,6 @@
 package com.zdravdom.billing.adapters.out.stripe;
 
+import com.stripe.net.RequestOptions;
 import com.stripe.exception.StripeException;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
@@ -9,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,20 +35,36 @@ public class RealStripeGateway implements StripeGateway {
     }
 
     @Override
-    public PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency) {
+    public PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency,
+        List<String> allowedNetworks) {
         try {
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+            var paramsBuilder = PaymentIntentCreateParams.builder()
                 .setAmount(toStripeAmount(amount))
                 .setCurrency(currency.toLowerCase())
                 .putExtraParam("metadata", Map.of(
                     "booking_id", String.valueOf(bookingId),
                     "platform", "zdravdom"
-                ))
+                ));
+
+            // Restrict accepted card networks when explicitly specified (e.g., ["visa", "mastercard"])
+            if (allowedNetworks != null && !allowedNetworks.isEmpty()) {
+                paramsBuilder.putExtraParam("payment_method_options", Map.of(
+                    "card", Map.of(
+                        "networks", Map.of(
+                            "requested", allowedNetworks
+                        )
+                    )
+                ));
+            }
+
+            RequestOptions options = RequestOptions.builder()
+                .setIdempotencyKey("pi_" + bookingId + "_" + System.currentTimeMillis())
                 .build();
 
-            var intent = com.stripe.model.PaymentIntent.create(params);
+            var intent = com.stripe.model.PaymentIntent.create(paramsBuilder.build(), options);
 
-            log.info("Created Stripe PaymentIntent {} for booking {}", intent.getId(), bookingId);
+            log.info("Created Stripe PaymentIntent {} for booking {} (networks={})",
+                intent.getId(), bookingId, allowedNetworks);
             return new PaymentIntent(intent.getId(), intent.getClientSecret(), intent.getStatus());
 
         } catch (StripeException e) {

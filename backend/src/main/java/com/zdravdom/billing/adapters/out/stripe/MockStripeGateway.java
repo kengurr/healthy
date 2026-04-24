@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +31,8 @@ public class MockStripeGateway implements StripeGateway {
     private boolean simulateFailure;
 
     @Override
-    public PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency) {
+    public PaymentIntent createPaymentIntent(Long bookingId, BigDecimal amount, String currency,
+        List<String> allowedNetworks) {
         if (simulateFailure) {
             throw new StripeGatewayException("Stripe API unavailable (mock failure)", null);
         }
@@ -42,8 +44,8 @@ public class MockStripeGateway implements StripeGateway {
         PaymentIntent intent = new PaymentIntent(id, clientSecret, status);
         paymentIntents.put(id, intent);
 
-        log.info("[MOCK] Created PaymentIntent {} for booking {} (amount={} {})",
-            id, bookingId, amount, currency);
+        log.info("[MOCK] Created PaymentIntent {} for booking {} (amount={} {}, networks={})",
+            id, bookingId, amount, currency, allowedNetworks);
         return intent;
     }
 
