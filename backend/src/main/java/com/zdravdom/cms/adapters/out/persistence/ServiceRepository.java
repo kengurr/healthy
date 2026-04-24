@@ -3,9 +3,13 @@ package com.zdravdom.cms.adapters.out.persistence;
 import com.zdravdom.cms.domain.Service;
 import com.zdravdom.cms.domain.Service.ServiceCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * JPA repository for Service entities.
@@ -18,4 +22,6 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
     List<Service> findByActiveTrue();
 
     List<Service> findByNameContainingIgnoreCase(String name);
+
+    Optional<Service> findByUuid(UUID uuid);
 }

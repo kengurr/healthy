@@ -69,7 +69,7 @@ public class PatientController {
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
             @RequestParam String type,
             @RequestParam String description) {
-        // In production, this would handle multipart file upload
+        // PRODUCTION: Replace stub with real multipart file upload to S3, persist ProviderDocument entity
         var response = new DocumentUploadResponse(UUID.randomUUID(), "https://s3.example.com/doc/" + UUID.randomUUID());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

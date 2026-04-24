@@ -1,6 +1,7 @@
 package com.zdravdom.user.application.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import java.math.BigDecimal;
 
 /**
  * Address request DTO.
@@ -12,9 +13,10 @@ public record AddressRequest(
     String apartmentNumber,
     @NotBlank String city,
     @NotBlank String postalCode,
+    String region,
     String country,
-    Double latitude,
-    Double longitude,
+    BigDecimal latitude,
+    BigDecimal longitude,
     String instructions,
     boolean isDefault
 ) {}

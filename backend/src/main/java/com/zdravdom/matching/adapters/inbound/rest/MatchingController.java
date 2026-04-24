@@ -26,14 +26,14 @@ public class MatchingController {
     }
 
     @GetMapping
-    @Operation(summary = "Match providers by service, date, time and address")
+    @Operation(summary = "Match providers by service, date, time and patient")
     public ResponseEntity<List<ProviderSummary>> matchProviders(
             @RequestParam UUID serviceId,
             @RequestParam LocalDate date,
             @RequestParam String time,
-            @RequestParam UUID addressId) {
+            @RequestParam Long patientId) {
         List<ProviderSummary> providers = matchingService.matchProviders(
-            serviceId, date, time, addressId);
+            serviceId, date, time, patientId);
         return ResponseEntity.ok(providers);
     }
 }

@@ -1,7 +1,6 @@
 package com.zdravdom.visit.application.dto;
 
 import com.zdravdom.visit.domain.Visit.VisitStatus;
-import com.zdravdom.visit.domain.Vitals;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,7 +13,7 @@ public record VisitResponse(
     Long bookingId,
     Long providerId,
     Long patientId,
-    Vitals vitals,
+    VitalsResponse vitals,
     String clinicalNotes,
     List<String> proceduresPerformed,
     List<String> photos,

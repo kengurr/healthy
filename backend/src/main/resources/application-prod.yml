@@ -79,8 +79,8 @@ aws:
 app:
   jwt:
     secret: ${JWT_SECRET:}  # REQUIRED: 256-bit secret
-    access-token-expiry: 900000        # 15 minutes
-    refresh-token-expiry: 864000000     # 10 days in production
+    access-token-expiry-minutes: 15
+    refresh-token-expiry-days: 10
 
 # Production logging
 logging:

@@ -1,6 +1,11 @@
 package com.zdravdom.user.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -10,6 +15,9 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "addresses", schema = "`user`")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Address {
 
     @Id
@@ -55,9 +63,6 @@ public class Address {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // Default constructor for JPA
-    public Address() {}
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -77,37 +82,8 @@ public class Address {
         return sb.toString();
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public Long getPatientId() { return patientId; }
-    public Long getProviderId() { return providerId; }
-    public String getStreet() { return street; }
-    public String getHouseNumber() { return houseNumber; }
-    public String getApartmentNumber() { return apartmentNumber; }
-    public String getCity() { return city; }
-    public String getPostalCode() { return postalCode; }
-    public String getRegion() { return region; }
-    public String getCountry() { return country; }
-    public BigDecimal getLatitude() { return latitude; }
-    public BigDecimal getLongitude() { return longitude; }
-    public String getInstructions() { return instructions; }
-    public boolean isPrimary() { return isPrimary; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setPatientId(Long patientId) { this.patientId = patientId; }
-    public void setProviderId(Long providerId) { this.providerId = providerId; }
-    public void setStreet(String street) { this.street = street; }
-    public void setHouseNumber(String houseNumber) { this.houseNumber = houseNumber; }
-    public void setApartmentNumber(String apartmentNumber) { this.apartmentNumber = apartmentNumber; }
-    public void setCity(String city) { this.city = city; }
-    public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
-    public void setRegion(String region) { this.region = region; }
-    public void setCountry(String country) { this.country = country; }
-    public void setLatitude(BigDecimal latitude) { this.latitude = latitude; }
-    public void setLongitude(BigDecimal longitude) { this.longitude = longitude; }
-    public void setInstructions(String instructions) { this.instructions = instructions; }
-    public void setPrimary(boolean isPrimary) { this.isPrimary = isPrimary; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    /** Factory method for application-layer instantiation. */
+    public static Address create() {
+        return new Address();
+    }
 }

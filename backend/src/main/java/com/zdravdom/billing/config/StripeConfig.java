@@ -25,6 +25,9 @@ public class StripeConfig {
         if (secretKey != null && !secretKey.isBlank()) {
             return new RealStripeGateway(secretKey);
         }
+        // DEVELOPMENT: Without stripe.secret-key, silently falls back to MockStripeGateway.
+        // PRODUCTION: If stripe.secret-key is unset in a non-dev profile, this should log a CRITICAL warning —
+        //             payment operations will silently use MockStripeGateway (payments won't actually process).
         return new MockStripeGateway();
     }
 }

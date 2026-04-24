@@ -2,14 +2,22 @@ package com.zdravdom.user.domain;
 
 import com.zdravdom.auth.domain.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.DynamicUpdate;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
  * Patient profile information.
  * Maps to user.patients table.
+ *
+ * PRODUCTION: Missing soft-delete — health data requires 10-year retention.
+ *             Implement logical deletion (active flag) and anonymization on soft-delete.
+ * PRODUCTION: Missing index on user_id (unique constraint already exists, but verify).
+ * PRODUCTION: Missing index on email — used for login lookups.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "patients", schema = "`user`")
 public class Patient {
 
@@ -80,6 +88,9 @@ public class Patient {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
 
     public enum Gender {
         MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
@@ -187,7 +198,7 @@ public class Patient {
     // Transient Address object for service layer compatibility
     @Transient
     public Address getAddress() {
-        Address addr = new Address();
+        Address addr = Address.create();
         addr.setStreet(addressStreet != null ? addressStreet : "");
         addr.setHouseNumber(addressHouseNumber);
         addr.setApartmentNumber(addressApartmentNumber);
@@ -234,6 +245,7 @@ public class Patient {
     public EmergencyContact getEmergencyContact() { return emergencyContact; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public Long getVersion() { return version; }
     public boolean isVerified() { return verified; }
     public boolean isActive() { return active; }
 

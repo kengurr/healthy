@@ -1,13 +1,26 @@
 package com.zdravdom.notification.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 /**
  * Notification entity. Maps to notification.notifications table.
+ *
+ * PRODUCTION: Missing index on user_id — used in getNotifications() queries.
+ * PRODUCTION: Missing index on (user_id, sent_at) — used in "recent notifications" query pattern.
+ * PRODUCTION: Missing index on type — used in notification filtering by type.
+ * PRODUCTION: Consider partitioning on user_id or date for large notification tables.
  */
 @Entity
 @Table(name = "notifications", schema = "notification")
+@Getter
+@Setter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Notification {
 
     @Id
@@ -41,9 +54,6 @@ public class Notification {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
-    // Default constructor for JPA
-    public Notification() {}
-
     @PrePersist
     protected void onCreate() {
         if (sentAt == null) sentAt = LocalDateTime.now();
@@ -53,28 +63,4 @@ public class Notification {
         this.read = true;
         this.readAt = LocalDateTime.now();
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public Long getUserId() { return userId; }
-    public String getUserType() { return userType; }
-    public String getType() { return type; }
-    public String getTitle() { return title; }
-    public String getMessage() { return message; }
-    public String getData() { return data; }
-    public boolean isRead() { return read; }
-    public LocalDateTime getSentAt() { return sentAt; }
-    public LocalDateTime getReadAt() { return readAt; }
-
-    // Setters
-    public void setId(Long id) { this.id = id; }
-    public void setUserId(Long userId) { this.userId = userId; }
-    public void setUserType(String userType) { this.userType = userType; }
-    public void setType(String type) { this.type = type; }
-    public void setTitle(String title) { this.title = title; }
-    public void setMessage(String message) { this.message = message; }
-    public void setData(String data) { this.data = data; }
-    public void setRead(boolean read) { this.read = read; }
-    public void setSentAt(LocalDateTime sentAt) { this.sentAt = sentAt; }
-    public void setReadAt(LocalDateTime readAt) { this.readAt = readAt; }
 }

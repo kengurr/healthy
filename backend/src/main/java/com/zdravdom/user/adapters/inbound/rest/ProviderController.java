@@ -59,7 +59,7 @@ public class ProviderController {
     public ResponseEntity<DocumentUploadResponse> uploadDocument(
             @AuthenticationPrincipal JwtAuthenticatedPrincipal principal,
             @RequestParam String type) {
-        // In production, this would handle multipart file upload
+        // PRODUCTION: Replace with real MultipartFile handling — currently passes empty byte array to stub service
         DocumentUploadResponse response = providerService.uploadDocument(
             principal.userId(), type, new byte[0], "document.pdf");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -68,8 +68,7 @@ public class ProviderController {
     @GetMapping("/{id}/profile")
     @Operation(summary = "Get public provider profile")
     public ResponseEntity<ProviderResponse> getProviderProfile(@PathVariable Long id) {
-        // For MVP, return mock data. In production, query by provider id
-        ProviderResponse response = providerService.getProviderByUserId(1L);
+        ProviderResponse response = providerService.getProviderById(id);
         return ResponseEntity.ok(response);
     }
 }

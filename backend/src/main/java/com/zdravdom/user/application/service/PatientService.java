@@ -93,6 +93,7 @@ public class PatientService {
         // For now, we return a placeholder job that immediately reports PROCESSING.
         // The caller should poll a future GET /gdpr/jobs/{jobId} endpoint.
         String jobId = java.util.UUID.randomUUID().toString();
+        // DEVELOPMENT: Returns a placeholder job immediately — GDPR worker runs as async job in production (see TODOs above)
         log.info("Started GDPR export for userId: {}, jobId: {} (placeholder — implement async job worker for production)", userId, jobId);
         return new GDPRExportResponse(java.util.UUID.fromString(jobId), "PROCESSING", null);
     }

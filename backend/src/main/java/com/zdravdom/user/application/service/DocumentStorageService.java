@@ -23,7 +23,7 @@ public class DocumentStorageService {
 
     private final S3Client s3Client;
 
-    @Value("${aws.s3.bucket.documents:zdravdom-documents}")
+    @Value("${aws.s3.bucket.documents:zdravdom-documents}") // PRODUCTION: Bucket name must come from environment-specific config — never a hardcoded default
     private String bucketDocuments;
 
     public DocumentStorageService(S3Client s3Client) {
@@ -60,6 +60,7 @@ public class DocumentStorageService {
      * Generate a pre-signed URL for downloading a document.
      */
     public String getDocumentUrl(String s3Key) {
+        // PRODUCTION: Return pre-signed S3 URL (S3Presigner) or CloudFront signed URL — direct URL exposes bucket structure and is a security risk
         return String.format("https://s3.amazonaws.com/%s/%s", bucketDocuments, s3Key);
     }
 

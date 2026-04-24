@@ -46,6 +46,7 @@ public class VisitController {
 
     @PutMapping("/{id}/complete")
     @Operation(summary = "Submit visit form with vitals, notes, and signature")
+    // PRODUCTION: Add @AuthenticationPrincipal — provider must be assigned to this visit
     public ResponseEntity<VisitResponse> completeVisit(
             @PathVariable Long id,
             @Valid @RequestBody CompleteVisitRequest request) {
@@ -64,6 +65,7 @@ public class VisitController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Download visit report PDF")
+    // PRODUCTION: Add @AuthenticationPrincipal and authorize: only patient/booking owner or assigned provider
     public ResponseEntity<Resource> getVisitPdf(@PathVariable Long id) {
         Resource pdf = visitService.getVisitPdf(id);
         return ResponseEntity.ok()
@@ -74,6 +76,7 @@ public class VisitController {
 
     @PostMapping("/{id}/send-to-patient")
     @Operation(summary = "Send visit report to patient via email")
+    // PRODUCTION: Add @AuthenticationPrincipal + verify caller is the provider who completed this visit
     public ResponseEntity<MessageResponse> sendReportToPatient(@PathVariable Long id) {
         visitService.sendReportToPatient(id);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
