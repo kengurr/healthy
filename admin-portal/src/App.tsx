@@ -3,6 +3,9 @@ import { LoginScreen } from './features/auth/LoginScreen';
 import { DashboardScreen } from './features/dashboard/DashboardScreen';
 import { UsersListScreen } from './features/users/UsersListScreen';
 import { ProvidersListScreen } from './features/providers/ProvidersListScreen';
+import { BookingsListScreen } from './features/bookings/BookingsListScreen';
+import { ServicesScreen } from './features/services/ServicesScreen';
+import { EscalationsListScreen } from './features/escalations/EscalationsListScreen';
 import { AppLayout } from './components/layout/AppLayout';
 import { getAccessToken } from '@zdravdom/api-client';
 
@@ -45,7 +48,7 @@ function App() {
         path="/bookings"
         element={
           <ProtectedRoute>
-            <div style={{ padding: '2rem' }}><h1>Bookings</h1></div>
+            <BookingsListScreen />
           </ProtectedRoute>
         }
       />
@@ -53,7 +56,15 @@ function App() {
         path="/services"
         element={
           <ProtectedRoute>
-            <div style={{ padding: '2rem' }}><h1>Services</h1></div>
+            <ServicesScreen />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/escalations"
+        element={
+          <ProtectedRoute>
+            <EscalationsListScreen />
           </ProtectedRoute>
         }
       />
