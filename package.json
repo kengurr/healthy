@@ -1,0 +1,13 @@
+{
+  "name": "zdravdom",
+  "private": true,
+  "workspaces": [
+    "shared/packages/*",
+    "admin-portal"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@zdravdom/admin-portal",
+    "build": "npm run build --workspaces",
+    "build --workspaces": "echo 'building shared packages'"
+  }
+}
