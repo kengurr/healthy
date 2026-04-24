@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+# Admin Portal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Operations/back-office web application for Zdravdom — used by admin staff, dispatchers, and superadmins to manage users, providers, bookings, content, analytics, and support workflows.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + Vite
+- TypeScript (strict)
+- TanStack Query (server state)
+- React Router v6
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Opens at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Dev Login
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+For local development with the backend running on `http://localhost:8080`:
+
+- **Email**: `admin@zdravdom.si`
+- **Password**: `adminpassword123`
+
+This admin account is seeded by `backend/src/main/resources/db/migration/V0__init_dev.sql`.
+
+## Backend Connection
+
+The portal expects the backend API at `http://localhost:8080` with JWT authentication. Start the backend with:
+
+```bash
+cd ../backend && mvn spring-boot:run -DskipTests -Dspring-boot.run.profiles=dev
 ```
+
+The dev profile uses an insecure JWT secret (`dev-only-secret-key-not-for-production-use-minimum-32-chars`) and has CORS configured to allow `localhost:5173`.
+
+## Key Screens
+
+- **Dashboard** (`/`) — KPIs, booking stats, DAU/MAU
+- **Provider Verification** (`/providers`) — approve/reject pending providers
+- **Bookings** (`/bookings`) — manage and dispatch bookings
+- **Services CMS** (`/services`) — manage services and packages
+- **Escalations** (`/escalations`) — handle red-button alerts
+- **Users** (`/users`) — patient account management
+
+## Roles
+
+| Role | Access |
+|------|--------|
+| OPERATOR | Booking queue, provider management, support |
+| ADMIN | Everything + user management, CMS, analytics |
+| SUPERADMIN | Everything + system configuration, audit logs |
+
+The seeded dev admin has the SUPERADMIN role.
