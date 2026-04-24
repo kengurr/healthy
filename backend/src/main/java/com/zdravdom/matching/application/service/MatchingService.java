@@ -27,7 +27,7 @@ import java.util.UUID;
  *
  * Workflow:
  * 1. Resolve patient address coordinates from addressId
- * 2. Geo-query providers within service radius using PostGIS ST_DWithin
+ * 2. Geo-query providers within service radius using Haversine SQL (no PostGIS required)
  * 3. Filter by service category (via ServiceRepository)
  * 4. Filter out providers with blocked_dates entries for the requested date
  * 5. Filter out providers with conflicting bookings (same date + overlapping time slot)
@@ -41,10 +41,11 @@ public class MatchingService {
 
     private static final Logger log = LoggerFactory.getLogger(MatchingService.class);
 
-    private static final double DEFAULT_SEARCH_RADIUS_KM = 25.0;
+    private static final double DEFAULT_SEARCH_RADIUS_KM = 25.0; // PRODUCTION: Must be configurable per service category or provider preference
     private static final double EARTH_RADIUS_KM = 6371.0;
 
     // Composite score weights
+    // PRODUCTION: Weights (0.4/0.3/0.3) should be configurable via database or env and tunable over time
     private static final double DISTANCE_WEIGHT = 0.4;
     private static final double RATING_WEIGHT = 0.3;
     private static final double VISITS_WEIGHT = 0.3;
@@ -88,7 +89,7 @@ public class MatchingService {
         BigDecimal lat = patientRepository.findPrimaryAddressLatitude(patientId);
         BigDecimal lng = patientRepository.findPrimaryAddressLongitude(patientId);
         if (lat == null || lng == null) {
-            log.warn("Patient {} has no primary address coordinates, returning empty list", patientId);
+            log.warn("Patient {} has no primary address coordinates, returning empty list", patientId); // PRODUCTION: Should log at WARN — indicates GDPR/address data gap
             return List.of();
         }
 
@@ -101,11 +102,11 @@ public class MatchingService {
         if (categoryFilter != null) {
             locations = providerLocationRepository.findWithinRadiusByCategory(
                     lat.doubleValue(), lng.doubleValue(),
-                    DEFAULT_SEARCH_RADIUS_KM * 1000.0, categoryFilter);
+                    DEFAULT_SEARCH_RADIUS_KM, categoryFilter);
         } else {
             locations = providerLocationRepository.findWithinRadius(
                     lat.doubleValue(), lng.doubleValue(),
-                    DEFAULT_SEARCH_RADIUS_KM * 1000.0);
+                    DEFAULT_SEARCH_RADIUS_KM);
         }
 
         if (locations.isEmpty()) {
@@ -245,29 +246,21 @@ public class MatchingService {
             return LocalTime.parse(time);
         } catch (Exception e) {
             log.warn("Could not parse time '{}', defaulting to 08:00", time);
-            return LocalTime.of(8, 0);
+            return LocalTime.of(8, 0); // PRODUCTION: Silent fallback masks invalid input — throw ValidationException instead
         }
     }
 
     /**
-     * Extract latitude from PostGIS GEOGRAPHY(POINT, 4326).
-     * The geography column stores (lng, lat) in PostGIS, so Point.getY() = latitude.
+     * Extract latitude from ProviderLocation.
      */
     private double extractLatitude(ProviderLocation loc) {
-        if (loc.getLocation() != null) {
-            return loc.getLocation().getY();
-        }
-        return 0.0;
+        return loc.getLatitude() != null ? loc.getLatitude() : 0.0;
     }
 
     /**
-     * Extract longitude from PostGIS GEOGRAPHY(POINT, 4326).
-     * The geography column stores (lng, lat) in PostGIS, so Point.getX() = longitude.
+     * Extract longitude from ProviderLocation.
      */
     private double extractLongitude(ProviderLocation loc) {
-        if (loc.getLocation() != null) {
-            return loc.getLocation().getX();
-        }
-        return 0.0;
+        return loc.getLongitude() != null ? loc.getLongitude() : 0.0;
     }
 }

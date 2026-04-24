@@ -22,8 +22,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -50,8 +48,6 @@ class MatchingServiceTest {
     private static final LocalDate FUTURE_DATE = LocalDate.now().plusDays(7);
     private static final String TIME_SLOT = "09:00";
     private static final LocalTime LOCAL_TIME = LocalTime.of(9, 0);
-
-    private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory();
 
     @Mock private ProviderLocationRepository providerLocationRepository;
     @Mock private SlotLockService slotLockService;
@@ -318,7 +314,8 @@ class MatchingServiceTest {
         loc.setId(providerId);
         loc.setProviderId(providerId);
         loc.setAddressId(1L);
-        loc.setLocation(GEOMETRY_FACTORY.createPoint(new Coordinate(lng, lat)));
+        loc.setLongitude(lng);
+        loc.setLatitude(lat);
         loc.setServiceRadiusKm(BigDecimal.valueOf(25.0));
         loc.setPrimary(true);
         return loc;
