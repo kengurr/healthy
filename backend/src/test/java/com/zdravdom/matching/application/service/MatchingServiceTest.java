@@ -256,7 +256,7 @@ class MatchingServiceTest {
         @DisplayName("trySlotLock delegates to SlotLockService with correct parameters")
         void trySlotLock_delegatesCorrectly() {
             // Given
-            UUID providerId = UUID.randomUUID();
+            Long providerId = 1L;
             LocalDate date = LocalDate.now().plusDays(1);
             LocalTime time = LocalTime.of(10, 0);
             String idempotencyKey = "idem-123";
@@ -270,7 +270,7 @@ class MatchingServiceTest {
             // Then
             assertThat(result).isTrue();
             verify(slotLockService).tryLock(
-                    eq(providerId.hashCode() * 1L),
+                    eq(providerId),
                     eq(date),
                     eq(time),
                     eq(idempotencyKey));
@@ -280,7 +280,7 @@ class MatchingServiceTest {
         @DisplayName("releaseSlotLock delegates to SlotLockService with correct parameters")
         void releaseSlotLock_delegatesCorrectly() {
             // Given
-            UUID providerId = UUID.randomUUID();
+            Long providerId = 1L;
             LocalDate date = LocalDate.now().plusDays(1);
             LocalTime time = LocalTime.of(10, 0);
 
@@ -289,7 +289,7 @@ class MatchingServiceTest {
 
             // Then
             verify(slotLockService).releaseLock(
-                    eq(providerId.hashCode() * 1L),
+                    eq(providerId),
                     eq(date),
                     eq(time));
         }
@@ -298,7 +298,7 @@ class MatchingServiceTest {
         @DisplayName("trySlotLock returns false when slot is already locked")
         void trySlotLock_returnsFalseWhenLocked() {
             // Given
-            UUID providerId = UUID.randomUUID();
+            Long providerId = 1L;
             when(slotLockService.tryLock(anyLong(), any(LocalDate.class), any(LocalTime.class), anyString()))
                     .thenReturn(false);
 
