@@ -15,4 +15,8 @@ public interface EscalationRepository extends JpaRepository<Escalation, Long> {
     List<Escalation> findByVisitId(Long visitId);
 
     List<Escalation> findByStatus(Escalation.EscalationStatus status);
+
+    List<Escalation> findByStatusIn(java.util.List<Escalation.EscalationStatus> statuses);
+
+    long countByStatus(Escalation.EscalationStatus status);
 }
