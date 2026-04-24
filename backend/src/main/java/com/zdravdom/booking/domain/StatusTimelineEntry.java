@@ -47,6 +47,11 @@ public class StatusTimelineEntry {
         this.createdAt = LocalDateTime.now();
     }
 
+    /** Convenience constructor without createdBy (for admin operations). */
+    public StatusTimelineEntry(Long bookingId, Booking.BookingStatus status, String note) {
+        this(bookingId, status, note, null);
+    }
+
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();

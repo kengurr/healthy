@@ -62,6 +62,11 @@ public class ServicePackage {
         S, M, L
     }
 
+    /** Factory method for application-layer and test instantiation. */
+    public static ServicePackage create() {
+        return new ServicePackage();
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

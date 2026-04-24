@@ -20,6 +20,8 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
 
     java.util.List<Provider> findByStatus(Provider.ProviderStatus status);
 
+    java.util.List<Provider> findByStatusIn(java.util.List<Provider.ProviderStatus> statuses);
+
     // TODO (Production): If providers are assigned a UUID externally (e.g., from a third-party
     // provider directory or HR system), add a 'uuid' column to the providers table and uncomment:
     // Optional<Provider> findByUuid(java.util.UUID uuid);
