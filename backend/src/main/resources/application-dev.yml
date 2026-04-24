@@ -47,6 +47,8 @@ aws:
 
 # JWT Configuration
 app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8081}
   jwt:
     secret: ${JWT_SECRET:dev-only-secret-key-not-for-production-use-minimum-32-chars}
     access-token-expiry-minutes: 15
