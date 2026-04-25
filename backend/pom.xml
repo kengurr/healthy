@@ -309,6 +309,9 @@
                     <locations>
                         <location>classpath:db/migration</location>
                     </locations>
+                    <url>jdbc:postgresql://localhost:5432/zdravdom</url>
+                    <user>postgres</user>
+                    <password>postgres</password>
                 </configuration>
             </plugin>
         </plugins>
