@@ -25,6 +25,7 @@ export function EscalationsListScreen() {
   const [resolution, setResolution] = useState('');
   const [actionTaken, setActionTaken] = useState('');
   const [newStatus, setNewStatus] = useState<EscalationStatus>('RESOLVED');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { data: escalations, isLoading } = useEscalations(statusFilter || undefined);
   const resolveMutation = useResolveEscalation();
@@ -36,8 +37,11 @@ export function EscalationsListScreen() {
       setResolution('');
       setActionTaken('');
       setNewStatus('RESOLVED');
+      setMessage({ type: 'success', text: 'Escalation updated.' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (e) {
-      console.error('Failed to resolve escalation', e);
+      setMessage({ type: 'error', text: 'Failed to update escalation.' });
+      setTimeout(() => setMessage(null), 3000);
     }
   }
 
@@ -45,6 +49,20 @@ export function EscalationsListScreen() {
     <div style={{ padding: '2rem' }}>
       <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Escalations</h1>
       <p style={{ color: '#64748b', marginBottom: '2rem' }}>Review and manage urgent clinical escalations</p>
+
+      {message && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          borderRadius: '6px',
+          marginBottom: '1rem',
+          background: message.type === 'success' ? '#dcfce7' : '#fee2e2',
+          color: message.type === 'success' ? '#166534' : '#991b1b',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+        }}>
+          {message.text}
+        </div>
+      )}
 
       {/* Filter */}
       <div style={{ marginBottom: '1rem' }}>
