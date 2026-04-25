@@ -4,6 +4,7 @@ import { DashboardScreen } from './features/dashboard/DashboardScreen';
 import { UsersListScreen } from './features/users/UsersListScreen';
 import { ProvidersListScreen } from './features/providers/ProvidersListScreen';
 import { BookingsListScreen } from './features/bookings/BookingsListScreen';
+import { BookingDetailScreen } from './features/bookings/BookingDetailScreen';
 import { ServicesScreen } from './features/services/ServicesScreen';
 import { EscalationsListScreen } from './features/escalations/EscalationsListScreen';
 import { AppLayout } from './components/layout/AppLayout';
@@ -41,6 +42,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ProvidersListScreen />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bookings/:id"
+        element={
+          <ProtectedRoute>
+            <BookingDetailScreen />
           </ProtectedRoute>
         }
       />

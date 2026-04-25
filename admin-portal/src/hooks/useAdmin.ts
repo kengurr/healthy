@@ -59,11 +59,30 @@ export function useBookings(status?: string) {
   });
 }
 
+export function useBooking(id: number) {
+  return useQuery({
+    queryKey: ['admin', 'bookings', id],
+    queryFn: () => adminApi.getBooking(id).then(r => r.data),
+    enabled: !!id,
+  });
+}
+
 export function useCancelBooking() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, reason }: { id: number; reason?: string }) =>
       adminApi.cancelBooking(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
+    },
+  });
+}
+
+export function useAssignProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, providerId, reason }: { id: number; providerId: number; reason?: string }) =>
+      adminApi.assignProvider(id, providerId, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'bookings'] });
     },

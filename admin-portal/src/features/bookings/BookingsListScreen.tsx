@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBookings, useCancelBooking } from '../../hooks/useAdmin';
 
 export function BookingsListScreen() {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [cancelReason, setCancelReason] = useState<string>('');
   const [cancellingId, setCancellingId] = useState<number | null>(null);
@@ -83,7 +85,7 @@ export function BookingsListScreen() {
           <tbody>
             {bookings.map(b => (
               <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.75rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>#{b.id}</td>
+                <td style={{ padding: '0.75rem 1rem', color: '#94a3b8', fontSize: '0.875rem', cursor: 'pointer' }} onClick={() => navigate(`/bookings/${b.id}`)}>#{b.id}</td>
                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{b.patientId}</td>
                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{b.providerId ?? '—'}</td>
                 <td style={{ padding: '0.75rem 1rem', color: '#475569', fontSize: '0.875rem' }}>{b.date}</td>
