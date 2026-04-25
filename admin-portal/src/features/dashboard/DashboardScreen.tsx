@@ -5,7 +5,7 @@ function formatCurrency(amount: number) {
 }
 
 export function DashboardScreen() {
-  const { data, isLoading, isError, error } = useDashboard();
+  const { data, isLoading, isError } = useDashboard();
 
   if (isLoading) {
     return (
@@ -32,7 +32,10 @@ export function DashboardScreen() {
     totalBookings: 0,
     activeBookings: 0,
     bookingsToday: 0,
+    bookingsThisWeek: 0,
     revenueToday: 0,
+    revenueThisWeek: 0,
+    revenueThisMonth: 0,
     pendingVerifications: 0,
     openEscalations: 0,
   };
@@ -40,7 +43,7 @@ export function DashboardScreen() {
   return (
     <div style={{ padding: '2rem' }}>
       <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Dashboard</h1>
-      <p style={{ color: '#64748b', marginBottom: '2rem' }}>Zdravdom Admin Portal</p>
+      <p style={{ color: '#64748b', marginBottom: '2rem' }}>Zdravdom Admin Portal — {data?.generatedAt ? `Updated ${new Date(data.generatedAt).toLocaleString('sl-SI')}` : ''}</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem', marginTop: '2rem' }}>
         <StatCard label="Total Patients" value={stats.totalPatients} />
@@ -49,7 +52,10 @@ export function DashboardScreen() {
         <StatCard label="Total Bookings" value={stats.totalBookings} />
         <StatCard label="Active Bookings" value={stats.activeBookings} />
         <StatCard label="Bookings Today" value={stats.bookingsToday} />
+        <StatCard label="Bookings This Week" value={stats.bookingsThisWeek} />
         <StatCard label="Revenue Today" value={formatCurrency(stats.revenueToday)} />
+        <StatCard label="Revenue This Week" value={formatCurrency(stats.revenueThisWeek)} />
+        <StatCard label="Revenue This Month" value={formatCurrency(stats.revenueThisMonth)} />
         <StatCard label="Pending Verifications" value={stats.pendingVerifications} highlight={stats.pendingVerifications > 0} />
         <StatCard label="Open Escalations" value={stats.openEscalations} highlight={stats.openEscalations > 0} />
       </div>

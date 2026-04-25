@@ -8,6 +8,8 @@ import type {
   CreatePackageRequest,
   UpdateEscalationStatusRequest,
   AdminEscalationResponse,
+  AdminPatientResponse,
+  AdminProvider,
 } from '@zdravdom/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
@@ -98,6 +100,20 @@ export function getAccessToken(): string | null {
   return localStorage.getItem('zdravdom_access_token');
 }
 
+export type UserRole = 'OPERATOR' | 'ADMIN' | 'SUPERADMIN';
+
+export function getUserRole(): UserRole | null {
+  const token = localStorage.getItem('zdravdom_access_token');
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded.role ?? decoded.roles?.[0] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Admin API
 export const adminApi = {
   // Dashboard
@@ -106,7 +122,7 @@ export const adminApi = {
 
   // Providers
   listProviders: (status?: string) =>
-    apiClient.get('/admin/providers', { params: { status } }),
+    apiClient.get<AdminProvider[]>('/admin/providers', { params: { status } }),
 
   getVerificationQueue: () =>
     apiClient.get<ProviderVerificationItem[]>('/admin/providers/verification-queue'),
@@ -158,5 +174,5 @@ export const adminApi = {
     apiClient.put(`/admin/escalations/${id}/status`, data),
 
   // Users (backend endpoint not yet built — placeholder)
-  listUsers: () => apiClient.get('/admin/users'),
+  listUsers: () => apiClient.get<AdminPatientResponse[]>('/admin/users'),
 };

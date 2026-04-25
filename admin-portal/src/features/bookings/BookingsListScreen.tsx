@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBookings, useCancelBooking } from '../../hooks/useAdmin';
 
 export function BookingsListScreen() {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [cancelReason, setCancelReason] = useState<string>('');
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { data: bookings, isLoading } = useBookings(statusFilter || undefined);
   const cancelMutation = useCancelBooking();
@@ -14,8 +17,11 @@ export function BookingsListScreen() {
       await cancelMutation.mutateAsync({ id, reason: cancelReason || undefined });
       setCancellingId(null);
       setCancelReason('');
+      setMessage({ type: 'success', text: 'Booking cancelled.' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (e) {
-      console.error('Failed to cancel booking', e);
+      setMessage({ type: 'error', text: 'Failed to cancel booking.' });
+      setTimeout(() => setMessage(null), 3000);
     }
   }
 
@@ -23,6 +29,20 @@ export function BookingsListScreen() {
     <div style={{ padding: '2rem' }}>
       <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Booking Management</h1>
       <p style={{ color: '#64748b', marginBottom: '2rem' }}>View and manage all platform bookings</p>
+
+      {message && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          borderRadius: '6px',
+          marginBottom: '1rem',
+          background: message.type === 'success' ? '#dcfce7' : '#fee2e2',
+          color: message.type === 'success' ? '#166534' : '#991b1b',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+        }}>
+          {message.text}
+        </div>
+      )}
 
       {/* Filter */}
       <div style={{ marginBottom: '1rem' }}>
@@ -65,7 +85,7 @@ export function BookingsListScreen() {
           <tbody>
             {bookings.map(b => (
               <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                <td style={{ padding: '0.75rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>#{b.id}</td>
+                <td style={{ padding: '0.75rem 1rem', color: '#94a3b8', fontSize: '0.875rem', cursor: 'pointer' }} onClick={() => navigate(`/bookings/${b.id}`)}>#{b.id}</td>
                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{b.patientId}</td>
                 <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{b.providerId ?? '—'}</td>
                 <td style={{ padding: '0.75rem 1rem', color: '#475569', fontSize: '0.875rem' }}>{b.date}</td>

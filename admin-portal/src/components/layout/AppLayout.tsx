@@ -1,18 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth/useAuth';
+import type { UserRole } from '@zdravdom/api-client';
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard' },
-  { to: '/users', label: 'Users' },
-  { to: '/providers', label: 'Providers' },
-  { to: '/bookings', label: 'Bookings' },
-  { to: '/services', label: 'Services' },
-  { to: '/escalations', label: 'Escalations' },
+const NAV_ITEMS: { to: string; label: string; roles: UserRole[] }[] = [
+  { to: '/dashboard', label: 'Dashboard', roles: ['OPERATOR', 'ADMIN', 'SUPERADMIN'] },
+  { to: '/providers', label: 'Providers', roles: ['OPERATOR', 'ADMIN', 'SUPERADMIN'] },
+  { to: '/bookings', label: 'Bookings', roles: ['OPERATOR', 'ADMIN', 'SUPERADMIN'] },
+  { to: '/escalations', label: 'Escalations', roles: ['OPERATOR', 'ADMIN', 'SUPERADMIN'] },
+  { to: '/users', label: 'Users', roles: ['ADMIN', 'SUPERADMIN'] },
+  { to: '/services', label: 'Services', roles: ['ADMIN', 'SUPERADMIN'] },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
   const location = useLocation();
+
+  const visibleItems = NAV_ITEMS.filter(item => role && item.roles.includes(role));
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -22,7 +25,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           Zdravdom
         </div>
         <nav style={{ flex: 1, padding: '0.5rem' }}>
-          {navItems.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -43,6 +46,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div style={{ padding: '1rem', borderTop: '1px solid #334155' }}>
+          {role && (
+            <div style={{ marginBottom: '0.75rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+              Role: <span style={{ color: '#93c5fd', fontWeight: 600 }}>{role}</span>
+            </div>
+          )}
           <button
             onClick={logout}
             style={{ width: '100%', padding: '0.5rem', background: 'transparent', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}

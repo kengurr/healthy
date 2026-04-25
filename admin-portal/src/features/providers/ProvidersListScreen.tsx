@@ -8,6 +8,8 @@ export function ProvidersListScreen() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [rejectReason, setRejectReason] = useState<string>('');
   const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [processingId, setProcessingId] = useState<number | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const { data: allProviders, isLoading: loadingAll } = useProviders(statusFilter || undefined);
   const { data: queue, isLoading: loadingQueue } = useVerificationQueue();
@@ -17,20 +19,32 @@ export function ProvidersListScreen() {
   const isLoading = tab === 'verification' ? loadingQueue : loadingAll;
 
   async function handleApprove(id: number) {
+    setProcessingId(id);
     try {
       await approveMutation.mutateAsync(id);
+      setMessage({ type: 'success', text: 'Provider approved successfully.' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (e) {
-      console.error('Failed to approve provider', e);
+      setMessage({ type: 'error', text: 'Failed to approve provider.' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setProcessingId(null);
     }
   }
 
   async function handleReject(id: number) {
+    setProcessingId(id);
     try {
       await rejectMutation.mutateAsync({ id, reason: rejectReason || undefined });
       setRejectingId(null);
       setRejectReason('');
+      setMessage({ type: 'success', text: 'Provider rejected.' });
+      setTimeout(() => setMessage(null), 3000);
     } catch (e) {
-      console.error('Failed to reject provider', e);
+      setMessage({ type: 'error', text: 'Failed to reject provider.' });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setProcessingId(null);
     }
   }
 
@@ -38,6 +52,20 @@ export function ProvidersListScreen() {
     <div style={{ padding: '2rem' }}>
       <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>Provider Management</h1>
       <p style={{ color: '#64748b', marginBottom: '2rem' }}>Verify and manage healthcare provider accounts</p>
+
+      {message && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          borderRadius: '6px',
+          marginBottom: '1rem',
+          background: message.type === 'success' ? '#dcfce7' : '#fee2e2',
+          color: message.type === 'success' ? '#166534' : '#991b1b',
+          fontSize: '0.875rem',
+          fontWeight: 500,
+        }}>
+          {message.text}
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
@@ -120,14 +148,15 @@ export function ProvidersListScreen() {
                         <>
                           <button
                             onClick={() => handleApprove(p.id)}
-                            disabled={approveMutation.isPending}
-                            style={{ padding: '0.375rem 0.75rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem', marginRight: '0.5rem' }}
+                            disabled={approveMutation.isPending || processingId === p.id}
+                            style={{ padding: '0.375rem 0.75rem', background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: processingId === p.id ? 'not-allowed' : 'pointer', marginRight: '0.5rem', opacity: processingId === p.id ? 0.6 : 1 }}
                           >
-                            {approveMutation.isPending ? 'Approving...' : 'Approve'}
+                            {processingId === p.id ? '...' : 'Approve'}
                           </button>
                           <button
                             onClick={() => setRejectingId(p.id)}
-                            style={{ padding: '0.375rem 0.75rem', background: 'white', color: '#dc2626', border: '1px solid #dc2626', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}
+                            disabled={processingId === p.id}
+                            style={{ padding: '0.375rem 0.75rem', background: 'white', color: '#dc2626', border: '1px solid #dc2626', borderRadius: '4px', cursor: processingId === p.id ? 'not-allowed' : 'pointer', opacity: processingId === p.id ? 0.6 : 1 }}
                           >
                             Reject
                           </button>
@@ -164,7 +193,7 @@ export function ProvidersListScreen() {
                     <td style={{ padding: '0.75rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>#{p.id}</td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{p.firstName} {p.lastName}</td>
                     <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{p.email}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{p.role?.name ?? p.role}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{p.profession}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: p.status === 'ACTIVE' ? '#dcfce7' : p.status === 'PENDING_VERIFICATION' ? '#fef9c3' : '#f1f5f9', color: p.status === 'ACTIVE' ? '#166534' : p.status === 'PENDING_VERIFICATION' ? '#854d0e' : '#475569' }}>{p.status}</span>
                     </td>

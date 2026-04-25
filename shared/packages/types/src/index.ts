@@ -512,3 +512,28 @@ export interface AdminEscalationResponse {
   gpsLng: number | null;
   notifiedUsers: string[];
 }
+
+export interface AdminPatientResponse {
+  id: number;
+  email: string;
+  phone: string | null;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string | null;
+  gender: string | null;
+  verified: boolean;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface AdminProvider {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profession: string;
+  specialty: string | null;
+  status: ProviderStatus;
+  rating: number | null;
+  createdAt: string;
+}
