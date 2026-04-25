@@ -100,6 +100,7 @@ These must be considered in every architectural decision:
 - cicd: GitHub Actions across all services
 
 ## Key Rules
+- **Feature branches for all work**: Never push directly to `master` or `main`. Every change — bug fixes, features, chores — goes through a named feature branch. Master is always releasable.
 - **API contract is source of truth**: OpenAPI spec in `/backend/api-contract/openapi.yaml`
 - Breaking API changes require formal change request + version bump
 - All architectural decisions must be logged in `/docs/adr/` (Architecture Decision Records)
