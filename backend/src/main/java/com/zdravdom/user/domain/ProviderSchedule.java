@@ -15,7 +15,7 @@ import java.time.LocalTime;
  * Maps to provider_schedule table.
  */
 @Entity
-@Table(name = "provider_schedule")
+@Table(name = "provider_schedule", schema = "usr")
 @Getter
 @Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
