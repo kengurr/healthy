@@ -99,3 +99,12 @@ export function useResolveEscalation() {
     },
   });
 }
+
+// ─── Users ─────────────────────────────────────────────────────────────────────
+
+export function useUsers() {
+  return useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: () => adminApi.listUsers(),
+  });
+}
