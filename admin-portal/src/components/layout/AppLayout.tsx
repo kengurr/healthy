@@ -46,6 +46,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div style={{ padding: '1rem', borderTop: '1px solid #334155' }}>
+          {role && (
+            <div style={{ marginBottom: '0.75rem', fontSize: '0.75rem', color: '#94a3b8' }}>
+              Role: <span style={{ color: '#93c5fd', fontWeight: 600 }}>{role}</span>
+            </div>
+          )}
           <button
             onClick={logout}
             style={{ width: '100%', padding: '0.5rem', background: 'transparent', border: '1px solid #475569', color: '#cbd5e1', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }}
