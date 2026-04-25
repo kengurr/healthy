@@ -22,7 +22,7 @@ Opens at `http://localhost:5173`
 
 For local development with the backend running on `http://localhost:8080`:
 
-- **Email**: `admin@zdravdom.si`
+- **Email**: `admin@zdravdom.com`
 - **Password**: `adminpassword123`
 
 This admin account is seeded by `backend/src/main/resources/db/migration/V0__init_dev.sql`.
