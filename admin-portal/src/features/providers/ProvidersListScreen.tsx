@@ -193,7 +193,7 @@ export function ProvidersListScreen() {
                     <td style={{ padding: '0.75rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>#{p.id}</td>
                     <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{p.firstName} {p.lastName}</td>
                     <td style={{ padding: '0.75rem 1rem', color: '#475569' }}>{p.email}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{p.role?.name ?? p.role}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{p.profession}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600, background: p.status === 'ACTIVE' ? '#dcfce7' : p.status === 'PENDING_VERIFICATION' ? '#fef9c3' : '#f1f5f9', color: p.status === 'ACTIVE' ? '#166534' : p.status === 'PENDING_VERIFICATION' ? '#854d0e' : '#475569' }}>{p.status}</span>
                     </td>

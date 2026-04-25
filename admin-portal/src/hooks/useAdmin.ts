@@ -7,7 +7,7 @@ import type { Service } from '@zdravdom/types';
 export function useDashboard() {
   return useQuery({
     queryKey: ['admin', 'dashboard'],
-    queryFn: () => adminApi.getDashboard(),
+    queryFn: () => adminApi.getDashboard().then(r => r.data),
   });
 }
 
@@ -16,14 +16,14 @@ export function useDashboard() {
 export function useProviders(status?: string) {
   return useQuery({
     queryKey: ['admin', 'providers', status],
-    queryFn: () => adminApi.listProviders(status),
+    queryFn: () => adminApi.listProviders(status).then(r => r.data),
   });
 }
 
 export function useVerificationQueue() {
   return useQuery({
     queryKey: ['admin', 'verification-queue'],
-    queryFn: () => adminApi.getVerificationQueue(),
+    queryFn: () => adminApi.getVerificationQueue().then(r => r.data),
   });
 }
 
@@ -55,7 +55,7 @@ export function useRejectProvider() {
 export function useBookings(status?: string) {
   return useQuery({
     queryKey: ['admin', 'bookings', status],
-    queryFn: () => adminApi.listBookings(status),
+    queryFn: () => adminApi.listBookings(status).then(r => r.data),
   });
 }
 
@@ -85,7 +85,7 @@ export function useServices() {
 export function useEscalations(status?: string) {
   return useQuery({
     queryKey: ['admin', 'escalations', status],
-    queryFn: () => adminApi.listEscalations(status),
+    queryFn: () => adminApi.listEscalations(status).then(r => r.data),
   });
 }
 
@@ -105,6 +105,6 @@ export function useResolveEscalation() {
 export function useUsers() {
   return useQuery({
     queryKey: ['admin', 'users'],
-    queryFn: () => adminApi.listUsers(),
+    queryFn: () => adminApi.listUsers().then(r => r.data),
   });
 }

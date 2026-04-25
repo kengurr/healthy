@@ -5,7 +5,7 @@ function formatCurrency(amount: number) {
 }
 
 export function DashboardScreen() {
-  const { data, isLoading, isError, error } = useDashboard();
+  const { data, isLoading, isError } = useDashboard();
 
   if (isLoading) {
     return (
